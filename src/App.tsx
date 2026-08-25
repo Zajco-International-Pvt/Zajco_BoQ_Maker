@@ -41,7 +41,7 @@ export const AppContent: React.FC = () => {
   const refreshData = async () => {
     try {
       const [fetchedSettings, fetchedBOQs, fetchedTemplates, fetchedLibrary, fetchedVendors] = await Promise.all([
-        getSystemSettings(),
+        getSystemSettings(isAdmin),
         getBOQsList(userProfile?.uid, isAdmin),
         getBOQTemplates(),
         getItemLibraryProducts(),

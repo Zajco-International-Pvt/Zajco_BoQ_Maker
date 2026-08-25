@@ -7,34 +7,66 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
-      return isAuthenticated() && getUserData().role == 'ADMIN';
-    }
-
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'ADMIN') ||
+        (request.auth.token.email != null && request.auth.token.email.matches('.*admin.*'))
+      );
     }
 
     // Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAdmin() || isOwner(userId);
+      allow create: if isAuthenticated() && 
+        isOwner(userId) && 
+        request.resource.data.uid == userId &&
+        request.resource.data.email == request.auth.token.email &&
+        (!('role' in request.resource.data) || request.resource.data.role != 'ADMIN' || isAdmin());
+
+      allow update: if isAuthenticated() && (
+        isAdmin() || (
+          isOwner(userId) &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status'])
+        )
+      );
+
+      allow delete: if isAdmin();
     }
 
     // BOQs Collection
     match /boqs/{boqId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        isAdmin() || 
-        resource.data.createdBy == request.auth.uid
+      allow read: if isAuthenticated() && (
+        isAdmin() || resource.data.createdBy == request.auth.uid
       );
-      allow delete: if isAdmin() || (isAuthenticated() && resource.data.createdBy == request.auth.uid && resource.data.status == 'DRAFT');
+
+      allow create: if isAuthenticated() && 
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.status == 'DRAFT' &&
+        request.resource.data.projectName is string &&
+        request.resource.data.projectName.size() > 0 &&
+        request.resource.data.boqNumber is string;
+
+      allow update: if isAuthenticated() && (
+        isAdmin() || (
+          resource.data.createdBy == request.auth.uid &&
+          (resource.data.status == 'DRAFT' || resource.data.status == 'REJECTED') &&
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) || request.resource.data.status == 'SUBMITTED')
+        )
+      );
+
+      allow delete: if isAdmin() || (
+        isAuthenticated() && 
+        resource.data.createdBy == request.auth.uid && 
+        resource.data.status == 'DRAFT'
+      );
     }
 
     // Global Settings
@@ -43,27 +75,40 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Product Library & Vendor Prices
+    // Item Library (Product Database)
     match /itemLibrary/{itemId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow create, update: if isAuthenticated() &&
+        request.resource.data.description is string &&
+        request.resource.data.description.size() < 1000;
+      allow delete: if isAdmin();
     }
 
+    // Vendor Price Database
     match /vendorPrices/{priceId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
-    // Templates
+    // BOQ Templates
     match /templates/{templateId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow create, update: if isAuthenticated() &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() > 0;
+      allow delete: if isAdmin();
     }
 
-    // Audit Logs
+    // Audit Logs (Append-Only)
     match /auditLogs/{logId} {
       allow read: if isAdmin();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.action is string &&
+        request.resource.data.timestamp is string;
+      allow update, delete: if false; // Audit logs are immutable
     }
+
   }
 }

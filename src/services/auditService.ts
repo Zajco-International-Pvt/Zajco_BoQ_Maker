@@ -24,6 +24,6 @@ export const logAuditEvent = async (
     };
     await addDoc(collection(db, 'auditLogs'), logData);
   } catch (error) {
-    console.error('Failed to log audit event:', error);
+    console.warn('Audit log write warning:', error);
   }
 };

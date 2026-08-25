@@ -137,19 +137,28 @@ export const getBOQById = async (boqId: string): Promise<BOQ | null> => {
 };
 
 export const getBOQsList = async (userId?: string, isAdmin: boolean = false): Promise<BOQ[]> => {
-  const boqsRef = collection(db, 'boqs');
-  let q = query(boqsRef, orderBy('updatedAt', 'desc'));
+  try {
+    const boqsRef = collection(db, 'boqs');
+    let q;
 
-  if (!isAdmin && userId) {
-    q = query(boqsRef, where('createdBy', '==', userId), orderBy('updatedAt', 'desc'));
+    if (!isAdmin && userId) {
+      q = query(boqsRef, where('createdBy', '==', userId));
+    } else {
+      q = query(boqsRef);
+    }
+
+    const querySnap = await getDocs(q);
+    const list: BOQ[] = [];
+    querySnap.forEach(d => {
+      list.push(d.data() as BOQ);
+    });
+
+    // In-memory sort by updatedAt descending (avoids requiring Firestore composite indexes)
+    return list.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+  } catch (err) {
+    console.warn('getBOQsList fetch warning:', err);
+    return [];
   }
-
-  const querySnap = await getDocs(q);
-  const list: BOQ[] = [];
-  querySnap.forEach(d => {
-    list.push(d.data() as BOQ);
-  });
-  return list;
 };
 
 export const updateBOQStatus = async (

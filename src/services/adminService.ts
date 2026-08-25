@@ -42,14 +42,20 @@ export const DEFAULT_SETTINGS: SystemSettings = {
 };
 
 // System Settings
-export const getSystemSettings = async (): Promise<SystemSettings> => {
+export const getSystemSettings = async (isAdmin: boolean = false): Promise<SystemSettings> => {
   try {
     const docRef = doc(db, 'settings', 'globalDoc');
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       return { ...DEFAULT_SETTINGS, ...snap.data() } as SystemSettings;
     } else {
-      await setDoc(docRef, DEFAULT_SETTINGS);
+      if (isAdmin) {
+        try {
+          await setDoc(docRef, DEFAULT_SETTINGS);
+        } catch (e) {
+          console.warn('Firestore setDoc settings warning:', e);
+        }
+      }
       return DEFAULT_SETTINGS;
     }
   } catch (err) {
@@ -90,14 +96,20 @@ export const updateUserRoleAndStatus = async (
 
 // Audit Logs
 export const getAuditLogs = async (maxLogs: number = 100): Promise<AuditLog[]> => {
-  const logsRef = collection(db, 'auditLogs');
-  const q = query(logsRef, orderBy('timestamp', 'desc'), limit(maxLogs));
-  const querySnap = await getDocs(q);
-  const logs: AuditLog[] = [];
-  querySnap.forEach(d => {
-    logs.push({ id: d.id, ...d.data() } as AuditLog);
-  });
-  return logs;
+  try {
+    const logsRef = collection(db, 'auditLogs');
+    const querySnap = await getDocs(logsRef);
+    const logs: AuditLog[] = [];
+    querySnap.forEach(d => {
+      logs.push({ id: d.id, ...d.data() } as AuditLog);
+    });
+    return logs
+      .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
+      .slice(0, maxLogs);
+  } catch (err) {
+    console.warn('getAuditLogs warning:', err);
+    return [];
+  }
 };
 
 // Item Library (Product Database)

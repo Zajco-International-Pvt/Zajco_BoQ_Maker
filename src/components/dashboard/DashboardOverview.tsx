@@ -1,14 +1,14 @@
 import React from 'react';
-import { 
-  FileSpreadsheet, 
-  PlusCircle, 
-  FileUp, 
-  CheckCircle, 
-  Clock, 
-  TrendingUp, 
-  Bookmark, 
-  Eye, 
-  Edit3, 
+import {
+  FileSpreadsheet,
+  PlusCircle,
+  FileUp,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  Bookmark,
+  Eye,
+  Edit3,
   Layers
 } from 'lucide-react';
 import type { BOQ, SystemSettings } from '../../types';
@@ -47,7 +47,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   return (
     <div className="space-y-8">
-      
+
       {/* Top Banner & Quick Actions */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-blue-950 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-6">
         <div>
@@ -88,7 +88,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
       {/* Metrics Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
+
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl relative overflow-hidden group hover:border-slate-700 transition-colors">
           <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
             <span>Total BOQs</span>
@@ -190,12 +190,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                       SAR {(b.totalFinalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${
-                        b.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-                        b.status === 'SUBMITTED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-                        b.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
-                        'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${b.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                          b.status === 'SUBMITTED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                            b.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                              'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                        }`}>
                         {b.status}
                       </span>
                     </td>

@@ -151,7 +151,13 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
       if (onSaved && currentId) onSaved(currentId);
     } catch (err: any) {
       console.error('Save failed:', err);
-      setNotice({ type: 'error', message: err.message || 'Failed to save BOQ to database.' });
+      const isPermissionErr = err.code === 'permission-denied' || err.message?.includes('permissions');
+      setNotice({ 
+        type: 'error', 
+        message: isPermissionErr
+          ? 'Firestore Permission Error: Your Firebase Console rules currently block database writes. Please update Firestore Rules in Firebase Console to allow authenticated read/write.'
+          : (err.message || 'Failed to save BOQ to database.')
+      });
       setSaveStatus('unsaved');
     } finally {
       setActionLoading(false);
