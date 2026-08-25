@@ -28,16 +28,16 @@ interface BOQEditorProps {
 }
 
 // Default Tunstall Sample Items if creating brand new empty BOQ
-const SAMPLE_TUNSTALL_ITEMS: Partial<BOQItem>[] = [
-  { serialNumber: 1, description: 'Tunstall - 76060550 Com Station IP', quantity: 3, pricingSource: 'Discounted Listed Price', unitPriceEUR: 412.54, profitPercentage: 40 },
-  { serialNumber: 2, description: 'Tunstall - Connection Terminal IP POE with VOIP', quantity: 12, pricingSource: 'Discounted Listed Price', unitPriceEUR: 185.00, profitPercentage: 35 },
-  { serialNumber: 3, description: 'Tunstall - Com Terminal IP POE', quantity: 24, pricingSource: 'Discounted Listed Price', unitPriceEUR: 160.00, profitPercentage: 35 },
-  { serialNumber: 4, description: 'Tunstall - IP SystemManager License', quantity: 1, pricingSource: 'Discounted Listed Price', unitPriceEUR: 1200.00, profitPercentage: 20 },
-  { serialNumber: 5, description: 'Desktop PC Workstation for Nurse Call Console', quantity: 2, pricingSource: 'Manual', unitPriceSAR: 3500.00, isManualSAR: true, profitPercentage: 15 },
-  { serialNumber: 6, description: '24 PORT POE SWITCH CISCO CATALYST', quantity: 4, pricingSource: 'Vendor Quotation', unitPriceSAR: 4200.00, isManualSAR: true, profitPercentage: 12 },
-  { serialNumber: 7, description: '24U Network Cabinet with Accessories', quantity: 2, pricingSource: 'Manual', unitPriceSAR: 1800.00, isManualSAR: true, profitPercentage: 15 },
-  { serialNumber: 8, description: 'Installation, Programming, Testing & Commissioning', quantity: 1, pricingSource: 'Management', unitPriceSAR: 15000.00, isManualSAR: true, profitPercentage: 25 }
-];
+// const SAMPLE_TUNSTALL_ITEMS: Partial<BOQItem>[] = [
+//   { serialNumber: 1, description: 'Tunstall - 76060550 Com Station IP', quantity: 3, pricingSource: 'Discounted Listed Price', unitPriceEUR: 412.54, profitPercentage: 40 },
+//   { serialNumber: 2, description: 'Tunstall - Connection Terminal IP POE with VOIP', quantity: 12, pricingSource: 'Discounted Listed Price', unitPriceEUR: 185.00, profitPercentage: 35 },
+//   { serialNumber: 3, description: 'Tunstall - Com Terminal IP POE', quantity: 24, pricingSource: 'Discounted Listed Price', unitPriceEUR: 160.00, profitPercentage: 35 },
+//   { serialNumber: 4, description: 'Tunstall - IP SystemManager License', quantity: 1, pricingSource: 'Discounted Listed Price', unitPriceEUR: 1200.00, profitPercentage: 20 },
+//   { serialNumber: 5, description: 'Desktop PC Workstation for Nurse Call Console', quantity: 2, pricingSource: 'Manual', unitPriceSAR: 3500.00, isManualSAR: true, profitPercentage: 15 },
+//   { serialNumber: 6, description: '24 PORT POE SWITCH CISCO CATALYST', quantity: 4, pricingSource: 'Vendor Quotation', unitPriceSAR: 4200.00, isManualSAR: true, profitPercentage: 12 },
+//   { serialNumber: 7, description: '24U Network Cabinet with Accessories', quantity: 2, pricingSource: 'Manual', unitPriceSAR: 1800.00, isManualSAR: true, profitPercentage: 15 },
+//   { serialNumber: 8, description: 'Installation, Programming, Testing & Commissioning', quantity: 1, pricingSource: 'Management', unitPriceSAR: 15000.00, isManualSAR: true, profitPercentage: 25 }
+// ];
 
 export const BOQEditor: React.FC<BOQEditorProps> = ({
   initialBOQ,
@@ -71,7 +71,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
       return initialBOQ.items;
     }
     // Default sample items
-    return SAMPLE_TUNSTALL_ITEMS.map((item) => calculateBOQItemRow(item, settings.eurToSarRate || 5));
+    return []; //SAMPLE_TUNSTALL_ITEMS.map((item) => calculateBOQItemRow(item, settings.eurToSarRate || 5));
   });
 
   // Auto-Save state
