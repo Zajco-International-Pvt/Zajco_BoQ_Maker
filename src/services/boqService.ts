@@ -1,6 +1,6 @@
 import { db } from '../config/firebase';
 import { 
-  collection, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, orderBy 
+  collection, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where 
 } from 'firebase/firestore';
 import type { BOQ, BOQItem, BOQRevision, BOQStatus } from '../types';
 import { logAuditEvent } from './auditService';

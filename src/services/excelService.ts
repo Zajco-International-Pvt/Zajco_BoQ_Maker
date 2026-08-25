@@ -1,7 +1,5 @@
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../config/firebase';
 import type { BOQ, SystemSettings } from '../types';
 
 export interface ColumnMapping {
@@ -21,9 +19,8 @@ export interface ColumnMapping {
 
 export const exportBOQToExcel = async (
   boq: BOQ,
-  settings?: SystemSettings,
-  userId?: string
-): Promise<{ blob: Blob; filename: string; storageUrl?: string }> => {
+  settings?: SystemSettings
+): Promise<{ blob: Blob; filename: string }> => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'ZAJCO BOQ Maker';
   workbook.lastModifiedBy = 'ZAJCO BOQ Maker';
@@ -291,20 +288,7 @@ export const exportBOQToExcel = async (
   const safeNum = (boq.boqNumber || '001').replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `BOQ-${safeNum}-${safeProj}.xlsx`;
 
-  // Firebase Storage Upload if userId and boqId are available
-  let storageUrl: string | undefined = undefined;
-  if (userId && boq.id) {
-    try {
-      const storagePath = `boqs/${userId}/${boq.id}/${filename}`;
-      const storageRef = ref(storage, storagePath);
-      await uploadBytes(storageRef, blob);
-      storageUrl = await getDownloadURL(storageRef);
-    } catch (err) {
-      console.warn('Firebase Storage Excel upload warning:', err);
-    }
-  }
-
-  return { blob, filename, storageUrl };
+  return { blob, filename };
 };
 
 export const triggerExcelDownload = (blob: Blob, filename: string) => {

@@ -78,7 +78,7 @@ export const BOQsList: React.FC<BOQsListProps> = ({
   // Handle Excel Download
   const handleDownloadExcel = async (boq: BOQ) => {
     try {
-      const { blob, filename } = await exportBOQToExcel(boq, settings, userProfile?.uid);
+      const { blob, filename } = await exportBOQToExcel(boq, settings);
       triggerExcelDownload(blob, filename);
     } catch (err) {
       console.error(err);

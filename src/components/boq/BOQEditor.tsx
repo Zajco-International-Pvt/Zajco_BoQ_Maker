@@ -197,12 +197,8 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         updatedAt: new Date().toISOString()
       };
 
-      const { blob, filename, storageUrl } = await exportBOQToExcel(tempBOQ, settings, userProfile?.uid);
+      const { blob, filename } = await exportBOQToExcel(tempBOQ, settings);
       triggerExcelDownload(blob, filename);
-
-      if (storageUrl && boqId) {
-        await updateBOQ(boqId, { excelFileUrl: storageUrl }, userProfile?.uid || '', userProfile?.name || '', userProfile?.email || '');
-      }
       setNotice({ type: 'success', message: 'Excel spreadsheet generated & downloaded!' });
     } catch (err: any) {
       setNotice({ type: 'error', message: 'Failed to generate Excel file: ' + err.message });

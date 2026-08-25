@@ -1,6 +1,6 @@
 import { db } from '../config/firebase';
 import { 
-  collection, doc, getDoc, setDoc, updateDoc, getDocs, query, orderBy, limit 
+  collection, doc, getDoc, setDoc, updateDoc, getDocs 
 } from 'firebase/firestore';
 import type { UserProfile, SystemSettings, ItemLibraryProduct, VendorPrice, BOQTemplate, AuditLog } from '../types';
 import { logAuditEvent } from './auditService';
