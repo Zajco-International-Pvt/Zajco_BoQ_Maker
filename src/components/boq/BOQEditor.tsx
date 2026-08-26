@@ -8,6 +8,7 @@ import {
   Bookmark,
   ArrowLeft,
   CheckCircle,
+  XCircle,
   AlertCircle,
   Building
 } from 'lucide-react';
@@ -64,6 +65,12 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
   const [status, setStatus] = useState<BOQStatus>(initialBOQ?.status || 'DRAFT');
   const [conversionRate, setConversionRate] = useState<number>(initialBOQ?.conversionRate || settings.eurToSarRate || 5);
   const [notes, setNotes] = useState(initialBOQ?.notes || '');
+
+  // Track original creator info so admin edits/draft saves never overwrite creator ownership
+  const [createdBy] = useState<string>(initialBOQ?.createdBy || userProfile?.uid || 'anonymous');
+  const [createdByName] = useState<string>(initialBOQ?.createdByName || userProfile?.name || 'User');
+  const [createdByEmail] = useState<string>(initialBOQ?.createdByEmail || userProfile?.email || '');
+  const [createdAt] = useState<string>(initialBOQ?.createdAt || new Date().toISOString());
 
   // Grid Items
   const [items, setItems] = useState<BOQItem[]>(() => {
@@ -128,10 +135,10 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         conversionRate,
         ...totals,
         items,
-        createdBy: userProfile?.uid || 'anonymous',
-        createdByName: userProfile?.name || 'User',
-        createdByEmail: userProfile?.email || '',
-        createdAt: initialBOQ?.createdAt || new Date().toISOString(),
+        createdBy: initialBOQ?.createdBy || createdBy,
+        createdByName: initialBOQ?.createdByName || createdByName,
+        createdByEmail: initialBOQ?.createdByEmail || createdByEmail,
+        createdAt: initialBOQ?.createdAt || createdAt,
         updatedAt: new Date().toISOString(),
         notes
       };
@@ -192,8 +199,10 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         conversionRate,
         ...recalculateBOQTotals(items),
         items,
-        createdBy: userProfile?.uid || '',
-        createdAt: new Date().toISOString(),
+        createdBy: initialBOQ?.createdBy || createdBy,
+        createdByName: initialBOQ?.createdByName || createdByName,
+        createdByEmail: initialBOQ?.createdByEmail || createdByEmail,
+        createdAt: initialBOQ?.createdAt || createdAt,
         updatedAt: new Date().toISOString()
       };
 
@@ -229,8 +238,10 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         conversionRate,
         ...recalculateBOQTotals(items),
         items,
-        createdBy: userProfile?.uid || '',
-        createdAt: new Date().toISOString(),
+        createdBy: initialBOQ?.createdBy || createdBy,
+        createdByName: initialBOQ?.createdByName || createdByName,
+        createdByEmail: initialBOQ?.createdByEmail || createdByEmail,
+        createdAt: initialBOQ?.createdAt || createdAt,
         updatedAt: new Date().toISOString()
       };
       exportBOQToPDF(tempBOQ, settings);
@@ -266,8 +277,10 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         conversionRate,
         ...recalculateBOQTotals(items),
         items,
-        createdBy: userProfile?.uid || '',
-        createdAt: new Date().toISOString(),
+        createdBy: initialBOQ?.createdBy || createdBy,
+        createdByName: initialBOQ?.createdByName || createdByName,
+        createdByEmail: initialBOQ?.createdByEmail || createdByEmail,
+        createdAt: initialBOQ?.createdAt || createdAt,
         updatedAt: new Date().toISOString()
       };
 
@@ -361,6 +374,30 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-start md:justify-end">
+          {isAdmin && status === 'SUBMITTED' && (
+            <>
+              <button
+                onClick={() => handleSave('APPROVED')}
+                disabled={actionLoading}
+                className="flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-40"
+                title="Approve BOQ"
+              >
+                <CheckCircle className="w-4 h-4" />
+                <span>Approve</span>
+              </button>
+
+              <button
+                onClick={() => handleSave('REJECTED')}
+                disabled={actionLoading}
+                className="flex items-center space-x-1.5 px-3 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-semibold rounded-xl transition-colors disabled:opacity-40"
+                title="Reject BOQ"
+              >
+                <XCircle className="w-4 h-4 text-rose-400" />
+                <span>Reject</span>
+              </button>
+            </>
+          )}
+
           <button
             onClick={() => handleSave('DRAFT')}
             disabled={actionLoading || isLocked}

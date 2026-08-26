@@ -96,10 +96,10 @@ export const createBOQ = async (boqData: Omit<BOQ, 'id'>, userId: string, userNa
     ...totals,
     revision: boqData.revision ?? 0,
     status: boqData.status || 'DRAFT',
-    createdBy: userId,
-    createdByName: userName,
-    createdByEmail: userEmail,
-    createdAt: new Date().toISOString(),
+    createdBy: boqData.createdBy || userId,
+    createdByName: boqData.createdByName || userName,
+    createdByEmail: boqData.createdByEmail || userEmail,
+    createdAt: boqData.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
 
@@ -117,8 +117,11 @@ export const updateBOQ = async (boqId: string, updates: Partial<BOQ>, userId: st
     updatedTotals = recalculateBOQTotals(updates.items);
   }
 
+  // Prevent accidental modification/overwriting of original creator metadata and creation date
+  const { createdBy, createdByName, createdByEmail, createdAt, ...restUpdates } = updates;
+
   const payload = {
-    ...updates,
+    ...restUpdates,
     ...updatedTotals,
     updatedAt: new Date().toISOString()
   };
