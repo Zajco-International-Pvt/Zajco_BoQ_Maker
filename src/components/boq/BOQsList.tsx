@@ -11,7 +11,8 @@ import {
   Copy, 
   Trash2, 
   FileText,
-  Plus
+  Plus,
+  RefreshCw
 } from 'lucide-react';
 import type { BOQ, BOQStatus, SystemSettings } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -22,6 +23,7 @@ import { duplicateBOQ, updateBOQStatus, deleteBOQ } from '../../services/boqServ
 interface BOQsListProps {
   boqs: BOQ[];
   settings: SystemSettings;
+  isLoading?: boolean;
   onEditBOQ: (boq: BOQ) => void;
   onViewBOQ: (boq: BOQ) => void;
   onCreateNew: () => void;
@@ -31,6 +33,7 @@ interface BOQsListProps {
 export const BOQsList: React.FC<BOQsListProps> = ({
   boqs,
   settings,
+  isLoading = false,
   onEditBOQ,
   onViewBOQ,
   onCreateNew,
@@ -116,13 +119,25 @@ export const BOQsList: React.FC<BOQsListProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={onCreateNew}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create New BOQ</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={onRefresh}
+            disabled={isLoading}
+            className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors disabled:opacity-50"
+            title="Refresh BOQs List"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>{isLoading ? 'Updating...' : 'Refresh'}</span>
+          </button>
+
+          <button
+            onClick={onCreateNew}
+            className="flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create New BOQ</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters Bar */}

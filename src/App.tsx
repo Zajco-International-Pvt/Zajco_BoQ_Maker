@@ -28,21 +28,30 @@ export const AppContent: React.FC = () => {
   const [itemLibrary, setItemLibrary] = useState<ItemLibraryProduct[]>([]);
   const [vendorPrices, setVendorPrices] = useState<VendorPrice[]>([]);
 
+  const [isDataLoading, setIsDataLoading] = useState<boolean>(false);
+
   // Selected BOQ for editing/viewing
   const [editingBOQ, setEditingBOQ] = useState<BOQ | null>(null);
 
-  // Load initial backend data
+  // Load backend data whenever auth state, profile or permissions are updated
   useEffect(() => {
     if (currentUser) {
       refreshData();
+    } else {
+      setBoqs([]);
+      setTemplates([]);
+      setItemLibrary([]);
+      setVendorPrices([]);
+      setEditingBOQ(null);
     }
-  }, [currentUser]);
+  }, [currentUser?.uid, userProfile?.uid, isAdmin]);
 
   const refreshData = async () => {
+    setIsDataLoading(true);
     try {
       const [fetchedSettings, fetchedBOQs, fetchedTemplates, fetchedLibrary, fetchedVendors] = await Promise.all([
         getSystemSettings(isAdmin),
-        getBOQsList(userProfile?.uid, isAdmin),
+        getBOQsList(userProfile?.uid || currentUser?.uid, isAdmin),
         getBOQTemplates(),
         getItemLibraryProducts(),
         getVendorPrices()
@@ -55,6 +64,8 @@ export const AppContent: React.FC = () => {
       setVendorPrices(fetchedVendors);
     } catch (err) {
       console.error('Data loading error:', err);
+    } finally {
+      setIsDataLoading(false);
     }
   };
 
@@ -111,6 +122,8 @@ export const AppContent: React.FC = () => {
             <DashboardOverview
               boqs={boqs}
               settings={settings}
+              isLoading={isDataLoading}
+              onRefresh={refreshData}
               onCreateBOQ={() => { setEditingBOQ(null); setCurrentTab('create-boq'); }}
               onImportExcel={() => setCurrentTab('excel-import')}
               onViewBOQ={(b) => { setEditingBOQ(b); setCurrentTab('create-boq'); }}
@@ -134,6 +147,7 @@ export const AppContent: React.FC = () => {
             <BOQsList
               boqs={boqs}
               settings={settings}
+              isLoading={isDataLoading}
               onEditBOQ={(b) => { setEditingBOQ(b); setCurrentTab('create-boq'); }}
               onViewBOQ={(b) => { setEditingBOQ(b); setCurrentTab('create-boq'); }}
               onCreateNew={() => { setEditingBOQ(null); setCurrentTab('create-boq'); }}

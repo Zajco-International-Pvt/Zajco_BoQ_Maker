@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  Save, 
-  Send, 
-  FileSpreadsheet, 
-  FileText, 
-  History, 
-  Bookmark, 
-  ArrowLeft, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  Save,
+  Send,
+  FileSpreadsheet,
+  FileText,
+  History,
+  Bookmark,
+  ArrowLeft,
+  CheckCircle,
+  AlertCircle,
   Building
 } from 'lucide-react';
 import type { BOQ, BOQItem, BOQStatus, ItemLibraryProduct, SystemSettings } from '../../types';
@@ -152,8 +152,8 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     } catch (err: any) {
       console.error('Save failed:', err);
       const isPermissionErr = err.code === 'permission-denied' || err.message?.includes('permissions');
-      setNotice({ 
-        type: 'error', 
+      setNotice({
+        type: 'error',
         message: isPermissionErr
           ? 'Firestore Permission Error: Your Firebase Console rules currently block database writes. Please update Firestore Rules in Firebase Console to allow authenticated read/write.'
           : (err.message || 'Failed to save BOQ to database.')
@@ -333,12 +333,11 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               <h1 className="text-xl font-black text-white tracking-tight">
                 {boqNumber}
               </h1>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wider border ${
-                status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-                status === 'SUBMITTED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-                status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
-                'bg-amber-500/10 text-amber-300 border-amber-500/30'
-              }`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wider border ${status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                  status === 'SUBMITTED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                    status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                      'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                }`}>
                 {status}
               </span>
 
@@ -346,14 +345,14 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
                 Rev {revision}
               </span>
             </div>
-            
+
             <div className="flex items-center space-x-2 text-xs text-slate-400 mt-0.5">
               <span>{projectName || 'Untitled BOQ Project'}</span>
               <span>•</span>
               <span className="text-slate-500">
                 {saveStatus === 'saving' ? 'Saving changes...' :
-                 saveStatus === 'saved' ? `Saved ${lastSavedTime ? 'at ' + lastSavedTime : ''}` :
-                 'Unsaved changes'}
+                  saveStatus === 'saved' ? `Saved ${lastSavedTime ? 'at ' + lastSavedTime : ''}` :
+                    'Unsaved changes'}
               </span>
             </div>
           </div>
@@ -420,9 +419,8 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
       </div>
 
       {notice && (
-        <div className={`p-4 rounded-xl border flex items-center justify-between ${
-          notice.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-        }`}>
+        <div className={`p-10 rounded-xl border flex items-center justify-between ${notice.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+          }`}>
           <div className="flex items-center space-x-3 text-sm">
             {notice.type === 'success' ? <CheckCircle className="w-5 h-5 text-emerald-400" /> : <AlertCircle className="w-5 h-5 text-rose-400" />}
             <span>{notice.message}</span>
@@ -432,7 +430,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
       )}
 
       {/* SECTION A: Project Information */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 shadow-xl space-y-5">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <h2 className="text-base font-bold text-white flex items-center space-x-2">
             <Building className="w-5 h-5 text-blue-400" />

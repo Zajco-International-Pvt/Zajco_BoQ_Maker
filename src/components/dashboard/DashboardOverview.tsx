@@ -9,13 +9,16 @@ import {
   Bookmark,
   Eye,
   Edit3,
-  Layers
+  Layers,
+  RefreshCw
 } from 'lucide-react';
 import type { BOQ, SystemSettings } from '../../types';
 
 interface DashboardOverviewProps {
   boqs: BOQ[];
   settings: SystemSettings;
+  isLoading?: boolean;
+  onRefresh?: () => void;
   onCreateBOQ: () => void;
   onImportExcel: () => void;
   onViewBOQ: (boq: BOQ) => void;
@@ -26,6 +29,8 @@ interface DashboardOverviewProps {
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   boqs,
   settings,
+  isLoading = false,
+  onRefresh,
   onCreateBOQ,
   onImportExcel,
   onViewBOQ,
@@ -60,6 +65,18 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={isLoading}
+              className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors disabled:opacity-50"
+              title="Refresh Dashboard Data"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>{isLoading ? 'Updating...' : 'Refresh'}</span>
+            </button>
+          )}
+
           <button
             onClick={onCreateBOQ}
             className="flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all"
@@ -152,7 +169,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <FileSpreadsheet className="w-5 h-5 text-blue-400" />
             <span>Recent Project BOQs</span>
           </h2>
-          <span className="text-xs text-slate-500">Showing latest records</span>
+          <div className="flex items-center space-x-3">
+            {isLoading && <span className="text-xs text-blue-400 flex items-center space-x-1"><RefreshCw className="w-3 h-3 animate-spin" /><span>Syncing...</span></span>}
+            <span className="text-xs text-slate-500">Showing latest records</span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

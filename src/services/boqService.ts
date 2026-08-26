@@ -1,4 +1,4 @@
-import { db } from '../config/firebase';
+import { db, auth } from '../config/firebase';
 import { 
   collection, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where 
 } from 'firebase/firestore';
@@ -139,12 +139,16 @@ export const getBOQById = async (boqId: string): Promise<BOQ | null> => {
 export const getBOQsList = async (userId?: string, isAdmin: boolean = false): Promise<BOQ[]> => {
   try {
     const boqsRef = collection(db, 'boqs');
+    const effectiveUserId = userId || auth.currentUser?.uid;
     let q;
 
-    if (!isAdmin && userId) {
-      q = query(boqsRef, where('createdBy', '==', userId));
-    } else {
+    if (!isAdmin && effectiveUserId) {
+      q = query(boqsRef, where('createdBy', '==', effectiveUserId));
+    } else if (isAdmin) {
       q = query(boqsRef);
+    } else {
+      // If neither admin nor authenticated user ID is available, return empty array safely
+      return [];
     }
 
     const querySnap = await getDocs(q);

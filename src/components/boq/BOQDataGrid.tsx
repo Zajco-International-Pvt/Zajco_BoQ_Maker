@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  Plus, 
-  Trash2, 
-  Copy, 
-  MoveUp, 
-  MoveDown, 
-  Search, 
+import {
+  Plus,
+  Trash2,
+  Copy,
+  MoveUp,
+  MoveDown,
+  Search,
   ClipboardPaste
 } from 'lucide-react';
 import type { BOQItem, ItemLibraryProduct } from '../../types';
@@ -158,7 +158,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
   const handleDescriptionChange = (index: number, val: string) => {
     handleCellChange(index, 'description', val);
     if (val.length >= 2 && itemLibrary.length > 0) {
-      const matched = itemLibrary.filter(p => 
+      const matched = itemLibrary.filter(p =>
         p.description.toLowerCase().includes(val.toLowerCase()) ||
         p.model.toLowerCase().includes(val.toLowerCase()) ||
         p.brand.toLowerCase().includes(val.toLowerCase())
@@ -252,7 +252,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl relative">
         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <table className="w-full text-left text-xs border-collapse">
-            
+
             {/* Sticky Table Header */}
             <thead className="bg-slate-950 text-slate-300 font-semibold sticky top-0 z-20 shadow-md">
               <tr className="divide-x divide-slate-800 border-b border-slate-800">
@@ -287,11 +287,10 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                   const isEven = idx % 2 === 0;
 
                   return (
-                    <tr 
+                    <tr
                       key={item.id}
-                      className={`group hover:bg-slate-800/60 transition-colors divide-x divide-slate-800/60 ${
-                        isEven ? 'bg-slate-900/40' : 'bg-slate-900/90'
-                      }`}
+                      className={`group hover:bg-slate-800/60 transition-colors divide-x divide-slate-800/60 ${isEven ? 'bg-slate-900/40' : 'bg-slate-900/90'
+                        }`}
                     >
                       {/* S.No */}
                       <td className="p-2 text-center font-bold text-slate-400 sticky left-0 bg-slate-900 z-10 group-hover:bg-slate-800">
@@ -374,7 +373,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                       </td>
 
                       {/* Unit Price EUR */}
-                      <td className="p-1.5 text-right">
+                      <td className="p-1.5 text-center">
                         {readOnly ? (
                           <div className="font-mono text-slate-200">{item.unitPriceEUR.toFixed(2)}</div>
                         ) : (
@@ -384,7 +383,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                             step="0.01"
                             value={item.unitPriceEUR}
                             onChange={(e) => handleCellChange(idx, 'unitPriceEUR', parseFloat(e.target.value) || 0)}
-                            className="w-full text-right bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-emerald-400 font-mono font-semibold focus:outline-none focus:border-blue-500"
+                            className="w-full text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-emerald-400 font-mono font-semibold focus:outline-none focus:border-blue-500"
                           />
                         )}
                       </td>
@@ -397,7 +396,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                       {/* Unit Price SAR (Auto / Manual Toggle) */}
                       <td className="p-1.5">
                         {readOnly ? (
-                          <div className="text-right font-mono text-slate-200">
+                          <div className="text-center font-mono text-slate-200">
                             {item.unitPriceSAR.toFixed(2)}
                             {item.isManualSAR && <span className="ml-1 text-[10px] text-amber-400 font-bold">(M)</span>}
                           </div>
@@ -410,11 +409,10 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                               value={item.unitPriceSAR}
                               disabled={!item.isManualSAR}
                               onChange={(e) => handleCellChange(idx, 'unitPriceSAR', parseFloat(e.target.value) || 0)}
-                              className={`w-full text-right bg-slate-950 border rounded px-1.5 py-1 text-xs font-mono font-semibold focus:outline-none ${
-                                item.isManualSAR 
-                                  ? 'border-amber-500/80 text-amber-300 bg-amber-950/20' 
+                              className={`w-full text-center bg-slate-950 border rounded px-1.5 py-1 text-xs font-mono font-semibold focus:outline-none ${item.isManualSAR
+                                  ? 'border-amber-500/80 text-amber-300 bg-amber-950/20'
                                   : 'border-slate-800 text-slate-400'
-                              }`}
+                                }`}
                             />
                             <label className="flex items-center justify-end space-x-1 cursor-pointer select-none">
                               <input
@@ -437,7 +435,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                       {/* Profit % */}
                       <td className="p-1.5">
                         {readOnly ? (
-                          <div className="text-right font-mono text-blue-300">
+                          <div className="text-center font-mono text-blue-300">
                             {item.profitPercentage !== null ? `${item.profitPercentage}%` : '-'}
                           </div>
                         ) : (
@@ -450,7 +448,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                               const val = e.target.value;
                               handleCellChange(idx, 'profitPercentage', val === '' ? null : parseFloat(val));
                             }}
-                            className="w-full text-right bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-blue-400 font-mono font-bold focus:outline-none focus:border-blue-500"
+                            className="w-full text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-blue-400 font-mono font-bold focus:outline-none focus:border-blue-500"
                           />
                         )}
                       </td>
