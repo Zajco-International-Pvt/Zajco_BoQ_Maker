@@ -9,7 +9,8 @@ import {
   Tag, 
   ShieldAlert, 
   Settings, 
-  History
+  History,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -28,9 +29,11 @@ export type NavTab =
 interface SidebarProps {
   currentTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, isOpen = false, onClose }) => {
   const { isAdmin } = useAuth();
 
   const navItems: { id: NavTab; label: string; icon: React.ComponentType<any>; adminOnly?: boolean }[] = [
@@ -47,45 +50,72 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col flex-shrink-0 min-h-[calc(100vh-4rem)]">
-      <div className="p-4 border-b border-slate-800/80">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Navigation Menu</span>
-      </div>
+    <>
+      {/* Mobile Drawer Overlay Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
-      <nav className="flex-1 p-3 space-y-1">
-        {navItems.map((item) => {
-          if (item.adminOnly && !isAdmin) return null;
-
-          const Icon = item.icon;
-          const isActive = currentTab === item.id;
-
-          return (
+      <aside
+        className={`fixed lg:static top-16 bottom-0 left-0 z-40 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col flex-shrink-0 transition-transform duration-200 ease-in-out ${
+          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+        } min-h-[calc(100vh-4rem)] overflow-y-auto`}
+      >
+        <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Navigation Menu</span>
+          {onClose && (
             <button
-              key={item.id}
-              onClick={() => onSelectTab(item.id)}
-              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 ${
-                isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 font-semibold'
-                  : 'hover:bg-slate-800 hover:text-slate-100 text-slate-400'
-              }`}
+              onClick={onClose}
+              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              aria-label="Close navigation menu"
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              <span>{item.label}</span>
+              <X className="w-4 h-4" />
             </button>
-          );
-        })}
-      </nav>
+          )}
+        </div>
 
-      {/* Footer info */}
-      <div className="p-4 border-t border-slate-800/80 text-xs text-slate-500">
-        <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span>System Online & Connected</span>
+        <nav className="flex-1 p-3 space-y-1">
+          {navItems.map((item) => {
+            if (item.adminOnly && !isAdmin) return null;
+
+            const Icon = item.icon;
+            const isActive = currentTab === item.id;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  onSelectTab(item.id);
+                  if (onClose) onClose();
+                }}
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 font-semibold'
+                    : 'hover:bg-slate-800 hover:text-slate-100 text-slate-400'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Footer info */}
+        <div className="p-4 border-t border-slate-800/80 text-xs text-slate-500">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span>System Online & Connected</span>
+          </div>
+          <div className="mt-1 text-[11px] text-slate-600">
+            Firebase Live Sync Enabled
+          </div>
         </div>
-        <div className="mt-1 text-[11px] text-slate-600">
-          Firebase Live Sync Enabled
-        </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 };

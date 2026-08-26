@@ -51,12 +51,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const recentBOQs = boqs.slice(0, 6);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
 
       {/* Top Banner & Quick Actions */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-blue-950 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-6">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-blue-950 border border-slate-800 p-4 sm:p-6 rounded-2xl shadow-xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
             ZAJCO ERP Dashboard
           </h1>
           <p className="text-xs text-slate-400 mt-1 max-w-xl">
@@ -64,12 +64,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
           {onRefresh && (
             <button
               onClick={onRefresh}
               disabled={isLoading}
-              className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors disabled:opacity-50"
+              className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors disabled:opacity-50"
               title="Refresh Dashboard Data"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
@@ -79,15 +79,15 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
           <button
             onClick={onCreateBOQ}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>+ Create New BOQ</span>
+            <span>+ Create BOQ</span>
           </button>
 
           <button
             onClick={onImportExcel}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors"
           >
             <FileUp className="w-4 h-4 text-indigo-400" />
             <span>Import Excel</span>
@@ -95,7 +95,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
           <button
             onClick={onOpenTemplates}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors"
           >
             <Bookmark className="w-4 h-4 text-amber-400" />
             <span>Templates</span>
@@ -104,60 +104,60 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       </div>
 
       {/* Metrics Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
 
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl relative overflow-hidden group hover:border-slate-700 transition-colors">
+        <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl relative overflow-hidden group hover:border-slate-700 transition-colors">
           <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
             <span>Total BOQs</span>
             <FileSpreadsheet className="w-4 h-4 text-blue-400" />
           </div>
-          <div className="text-3xl font-black text-white mt-2 font-mono">{totalBOQs}</div>
+          <div className="text-2xl sm:text-3xl font-black text-white mt-2 font-mono">{totalBOQs}</div>
           <div className="text-[11px] text-slate-500 mt-1">{createdThisMonth} created this month</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl relative overflow-hidden group hover:border-slate-700 transition-colors">
+        <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl relative overflow-hidden group hover:border-slate-700 transition-colors">
           <div className="flex items-center justify-between text-amber-300 text-xs font-semibold uppercase tracking-wider">
             <span>Draft BOQs</span>
             <Clock className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-3xl font-black text-amber-300 mt-2 font-mono">{draftBOQs}</div>
+          <div className="text-2xl sm:text-3xl font-black text-amber-300 mt-2 font-mono">{draftBOQs}</div>
           <div className="text-[11px] text-slate-500 mt-1">Work in progress</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl relative overflow-hidden group hover:border-slate-700 transition-colors">
+        <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl relative overflow-hidden group hover:border-slate-700 transition-colors">
           <div className="flex items-center justify-between text-blue-300 text-xs font-semibold uppercase tracking-wider">
             <span>Submitted BOQs</span>
             <Layers className="w-4 h-4 text-blue-400" />
           </div>
-          <div className="text-3xl font-black text-blue-300 mt-2 font-mono">{submittedBOQs}</div>
+          <div className="text-2xl sm:text-3xl font-black text-blue-300 mt-2 font-mono">{submittedBOQs}</div>
           <div className="text-[11px] text-slate-500 mt-1">Pending review</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl relative overflow-hidden group hover:border-slate-700 transition-colors">
+        <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl relative overflow-hidden group hover:border-slate-700 transition-colors">
           <div className="flex items-center justify-between text-emerald-400 text-xs font-semibold uppercase tracking-wider">
             <span>Approved BOQs</span>
             <CheckCircle className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-3xl font-black text-emerald-400 mt-2 font-mono">{approvedBOQs}</div>
+          <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-2 font-mono">{approvedBOQs}</div>
           <div className="text-[11px] text-slate-500 mt-1">{rejectedBOQs} rejected</div>
         </div>
 
       </div>
 
       {/* Total BOQ Portfolio Value Highlight Card */}
-      <div className="bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-slate-900 border border-blue-500/30 p-6 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-slate-900 border border-blue-500/30 p-4 sm:p-6 rounded-2xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="text-xs font-bold uppercase tracking-wider text-blue-300 flex items-center space-x-2">
             <TrendingUp className="w-4 h-4 text-emerald-400" />
             <span>Total BOQ Portfolio Value (SAR)</span>
           </div>
-          <div className="text-3xl font-black text-white font-mono mt-1">
+          <div className="text-2xl sm:text-3xl font-black text-white font-mono mt-1">
             SAR {totalValueSAR.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
         </div>
 
-        <div className="text-right text-xs text-slate-400">
-          <div>Global Conversion Rate: <span className="text-amber-400 font-bold">1 EUR = {settings.eurToSarRate} SAR</span></div>
+        <div className="text-left sm:text-right text-xs text-slate-400">
+          <div>Global Rate: <span className="text-amber-400 font-bold">1 EUR = {settings.eurToSarRate} SAR</span></div>
           <div>Company: <span className="text-slate-200 font-semibold">{settings.companyName}</span></div>
         </div>
       </div>

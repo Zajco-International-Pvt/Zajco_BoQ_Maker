@@ -93,22 +93,22 @@ export const ExcelImporterModal: React.FC<ExcelImporterModalProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6 max-w-4xl mx-auto">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-5 sm:space-y-6 max-w-4xl mx-auto">
       
       {/* Title */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+      <div className="flex items-start sm:items-center justify-between border-b border-slate-800 pb-3 sm:pb-4 gap-2">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-            <FileUp className="w-5 h-5 text-blue-400" />
-            <span>Excel BOQ Import & Header Mapping Engine</span>
+          <h2 className="text-base sm:text-lg font-bold text-white flex items-center space-x-2">
+            <FileUp className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <span>Excel BOQ Import & Mapping</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Upload existing .xlsx, .xls, or .csv BOQ file to auto-detect and populate items
+            Upload .xlsx, .xls, or .csv BOQ file to auto-detect and populate items
           </p>
         </div>
 
         {onClose && (
-          <button onClick={onClose} className="text-slate-400 hover:text-white font-bold">
+          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-white font-bold" aria-label="Close modal">
             ✕
           </button>
         )}
@@ -116,7 +116,7 @@ export const ExcelImporterModal: React.FC<ExcelImporterModalProps> = ({
 
       {error && (
         <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl flex items-center space-x-2 text-rose-300 text-xs">
-          <AlertCircle className="w-4 h-4 text-rose-400" />
+          <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}

@@ -62,29 +62,29 @@ export const VendorPriceModal: React.FC<VendorPriceModalProps> = ({
   );
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-5 sm:space-y-6 max-w-4xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 sm:pb-4 gap-3">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-            <Tag className="w-5 h-5 text-indigo-400" />
-            <span>Vendor Quotation & Pricing Master Database</span>
+          <h2 className="text-base sm:text-lg font-bold text-white flex items-center space-x-2">
+            <Tag className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+            <span>Vendor Quotations & Pricing Master</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Store supplier quotations, discounts, and verified unit pricing history
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-2 sm:gap-3 justify-between sm:justify-end">
           <button
             onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Vendor Price</span>
+            <span>{showAdd ? 'Hide Form' : 'Add Price'}</span>
           </button>
 
           {onClose && (
-            <button onClick={onClose} className="text-slate-400 hover:text-white font-bold">
+            <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-white font-bold" aria-label="Close modal">
               ✕
             </button>
           )}
@@ -92,7 +92,7 @@ export const VendorPriceModal: React.FC<VendorPriceModalProps> = ({
       </div>
 
       {showAdd && (
-        <form onSubmit={handleSave} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-4">
+        <form onSubmit={handleSave} className="bg-slate-950 border border-slate-800 p-3 sm:p-4 rounded-xl space-y-3 sm:space-y-4">
           <h3 className="text-xs font-bold text-white uppercase tracking-wider">New Vendor Price Entry</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input

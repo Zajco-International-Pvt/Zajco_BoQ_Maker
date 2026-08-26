@@ -108,10 +108,10 @@ export const BOQsList: React.FC<BOQsListProps> = ({
     <div className="space-y-6">
       
       {/* Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl">
         <div>
-          <h1 className="text-xl font-extrabold text-white tracking-tight flex items-center space-x-2">
-            <FileSpreadsheet className="w-6 h-6 text-blue-400" />
+          <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight flex items-center space-x-2">
+            <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
             <span>BOQ Management & Registry</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
@@ -119,11 +119,11 @@ export const BOQsList: React.FC<BOQsListProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           <button
             onClick={onRefresh}
             disabled={isLoading}
-            className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors disabled:opacity-50"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors disabled:opacity-50"
             title="Refresh BOQs List"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
@@ -132,7 +132,7 @@ export const BOQsList: React.FC<BOQsListProps> = ({
 
           <button
             onClick={onCreateNew}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all"
           >
             <Plus className="w-4 h-4" />
             <span>Create New BOQ</span>
@@ -141,9 +141,9 @@ export const BOQsList: React.FC<BOQsListProps> = ({
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-wrap items-center gap-3">
-        <div className="flex-1 min-w-[240px] relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+      <div className="bg-slate-900 border border-slate-800 p-3 sm:p-4 rounded-2xl shadow-lg flex flex-col md:flex-row items-stretch md:items-center gap-2.5 sm:gap-3">
+        <div className="flex-1 min-w-0 relative">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 sm:top-3 text-slate-500" />
           <input
             type="text"
             placeholder="Search by BOQ No, Project, Client, Creator..."
@@ -153,29 +153,33 @@ export const BOQsList: React.FC<BOQsListProps> = ({
           />
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Filter className="w-4 h-4 text-slate-500" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="DRAFT">DRAFT</option>
-            <option value="SUBMITTED">SUBMITTED</option>
-            <option value="APPROVED">APPROVED</option>
-            <option value="REJECTED">REJECTED</option>
-            <option value="ARCHIVED">ARCHIVED</option>
-          </select>
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+          <div className="flex items-center space-x-1.5 flex-1 sm:flex-initial min-w-[130px]">
+            <Filter className="w-4 h-4 text-slate-500 flex-shrink-0" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="DRAFT">DRAFT</option>
+              <option value="SUBMITTED">SUBMITTED</option>
+              <option value="APPROVED">APPROVED</option>
+              <option value="REJECTED">REJECTED</option>
+              <option value="ARCHIVED">ARCHIVED</option>
+            </select>
+          </div>
 
-          <select
-            value={systemFilter}
-            onChange={(e) => setSystemFilter(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
-          >
-            <option value="ALL">All Systems</option>
-            {settings.systemsList.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <div className="flex-1 sm:flex-initial min-w-[140px]">
+            <select
+              value={systemFilter}
+              onChange={(e) => setSystemFilter(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
+            >
+              <option value="ALL">All Systems</option>
+              {settings.systemsList.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 

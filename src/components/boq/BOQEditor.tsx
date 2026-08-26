@@ -317,23 +317,24 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     <div className="space-y-6 pb-20">
 
       {/* Top Bar Navigation & Status Actions */}
-      <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-xl sticky top-16 z-30 backdrop-blur-md">
-        <div className="flex items-center space-x-3">
+      <div className="bg-slate-900/95 border border-slate-800 p-3 sm:p-4 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 shadow-xl sticky top-16 z-30 backdrop-blur-md">
+        <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
           {onBack && (
             <button
               onClick={onBack}
-              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors"
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors flex-shrink-0"
+              aria-label="Back to BOQs List"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
           )}
 
-          <div>
-            <div className="flex items-center space-x-3">
-              <h1 className="text-xl font-black text-white tracking-tight">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight truncate">
                 {boqNumber}
               </h1>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wider border ${status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+              <span className={`px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider border ${status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
                   status === 'SUBMITTED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
                     status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
                       'bg-amber-500/10 text-amber-300 border-amber-500/30'
@@ -341,16 +342,16 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
                 {status}
               </span>
 
-              <span className="text-xs text-slate-400 font-semibold bg-slate-800 px-2 py-0.5 rounded">
+              <span className="text-[10px] sm:text-xs text-slate-400 font-semibold bg-slate-800 px-2 py-0.5 rounded">
                 Rev {revision}
               </span>
             </div>
 
-            <div className="flex items-center space-x-2 text-xs text-slate-400 mt-0.5">
-              <span>{projectName || 'Untitled BOQ Project'}</span>
+            <div className="flex items-center space-x-2 text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">
+              <span className="truncate max-w-[200px] sm:max-w-xs">{projectName || 'Untitled BOQ Project'}</span>
               <span>•</span>
-              <span className="text-slate-500">
-                {saveStatus === 'saving' ? 'Saving changes...' :
+              <span className="text-slate-500 flex-shrink-0">
+                {saveStatus === 'saving' ? 'Saving...' :
                   saveStatus === 'saved' ? `Saved ${lastSavedTime ? 'at ' + lastSavedTime : ''}` :
                     'Unsaved changes'}
               </span>
@@ -359,11 +360,11 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-start md:justify-end">
           <button
             onClick={() => handleSave('DRAFT')}
             disabled={actionLoading || isLocked}
-            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-colors disabled:opacity-40"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-colors disabled:opacity-40"
           >
             <Save className="w-4 h-4 text-blue-400" />
             <span>Save Draft</span>
@@ -372,39 +373,42 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
           <button
             onClick={handleSubmitBOQ}
             disabled={actionLoading || isLocked || status === 'SUBMITTED'}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all disabled:opacity-40"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all disabled:opacity-40"
           >
             <Send className="w-4 h-4" />
-            <span>Submit BOQ</span>
+            <span>Submit</span>
           </button>
 
-          <div className="h-6 w-px bg-slate-800 my-auto hidden sm:block" />
+          <div className="h-6 w-px bg-slate-800 my-auto hidden lg:block" />
 
           <button
             onClick={handleExportExcel}
             disabled={actionLoading}
-            className="flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold rounded-xl transition-colors"
+            className="flex items-center space-x-1.5 px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold rounded-xl transition-colors"
+            title="Download Excel Spreadsheet"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-            <span>Download Excel</span>
+            <span className="hidden sm:inline">Excel</span>
           </button>
 
           <button
             onClick={handleExportPDF}
             disabled={actionLoading}
             className="flex items-center space-x-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors"
+            title="Download PDF Document"
           >
             <FileText className="w-4 h-4 text-rose-400" />
-            <span>PDF</span>
+            <span className="hidden sm:inline">PDF</span>
           </button>
 
           <button
             onClick={handleCreateRevision}
             disabled={actionLoading || !boqId}
             className="flex items-center space-x-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors"
+            title="Create New Revision Snapshot"
           >
             <History className="w-4 h-4 text-amber-400" />
-            <span>New Rev</span>
+            <span className="hidden sm:inline">New Rev</span>
           </button>
 
           <button
@@ -419,27 +423,27 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
       </div>
 
       {notice && (
-        <div className={`p-10 rounded-xl border flex items-center justify-between ${notice.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+        <div className={`p-3.5 sm:p-4 rounded-xl border flex items-center justify-between gap-3 ${notice.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
           }`}>
-          <div className="flex items-center space-x-3 text-sm">
-            {notice.type === 'success' ? <CheckCircle className="w-5 h-5 text-emerald-400" /> : <AlertCircle className="w-5 h-5 text-rose-400" />}
-            <span>{notice.message}</span>
+          <div className="flex items-center space-x-3 text-xs sm:text-sm min-w-0">
+            {notice.type === 'success' ? <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0" />}
+            <span className="break-words">{notice.message}</span>
           </div>
-          <button onClick={() => setNotice(null)} className="text-xs underline font-semibold">Dismiss</button>
+          <button onClick={() => setNotice(null)} className="text-xs underline font-semibold flex-shrink-0">Dismiss</button>
         </div>
       )}
 
       {/* SECTION A: Project Information */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 shadow-xl space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h2 className="text-base font-bold text-white flex items-center space-x-2">
-            <Building className="w-5 h-5 text-blue-400" />
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-xl space-y-4 sm:space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-1">
+          <h2 className="text-sm sm:text-base font-bold text-white flex items-center space-x-2">
+            <Building className="w-5 h-5 text-blue-400 flex-shrink-0" />
             <span>SECTION A — Project Information & Settings</span>
           </h2>
           <span className="text-xs text-slate-500">Metadata & Conversion Rules</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">BOQ Number</label>
             <input
@@ -447,7 +451,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               value={boqNumber}
               onChange={(e) => { setBoqNumber(e.target.value); setSaveStatus('unsaved'); }}
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-mono font-bold focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -459,7 +463,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               onChange={(e) => { setProjectName(e.target.value); setSaveStatus('unsaved'); }}
               placeholder="e.g. King Fahd Hospital Nurse Call System"
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -471,7 +475,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               onChange={(e) => { setClient(e.target.value); setSaveStatus('unsaved'); }}
               placeholder="Ministry of Health / Client Name"
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -482,7 +486,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               value={contractor}
               onChange={(e) => { setContractor(e.target.value); setSaveStatus('unsaved'); }}
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -494,7 +498,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               onChange={(e) => { setConsultant(e.target.value); setSaveStatus('unsaved'); }}
               placeholder="Dar Al-Handasah / Consultant"
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -505,7 +509,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               value={location}
               onChange={(e) => { setLocation(e.target.value); setSaveStatus('unsaved'); }}
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -515,7 +519,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               value={system}
               onChange={(e) => { setSystem(e.target.value); setSaveStatus('unsaved'); }}
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             >
               {settings.systemsList.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -529,7 +533,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               onChange={(e) => { setBrand(e.target.value); setSaveStatus('unsaved'); }}
               placeholder="Tunstall, Honeywell, Cisco, Generic..."
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -540,7 +544,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               value={preparedBy}
               onChange={(e) => { setPreparedBy(e.target.value); setSaveStatus('unsaved'); }}
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -551,7 +555,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               value={checkedBy}
               onChange={(e) => { setCheckedBy(e.target.value); setSaveStatus('unsaved'); }}
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -562,14 +566,14 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               value={date}
               onChange={(e) => { setDate(e.target.value); setSaveStatus('unsaved'); }}
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-amber-300 mb-1 flex items-center justify-between">
               <span>EUR → SAR Rate</span>
-              <span className="text-[10px] text-slate-500">Global Default: {settings.eurToSarRate}</span>
+              <span className="text-[10px] text-slate-500">Default: {settings.eurToSarRate}</span>
             </label>
             <input
               type="number"
@@ -577,49 +581,49 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               value={conversionRate}
               onChange={(e) => handleRateChange(parseFloat(e.target.value) || 5)}
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-amber-500/50 text-amber-300 font-bold rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400"
+              className="w-full bg-slate-950 border border-amber-500/50 text-amber-300 font-bold rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-amber-400"
             />
           </div>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="bg-slate-900 border border-slate-800 p-3.5 sm:p-4 rounded-2xl shadow-lg">
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total EUR Value</div>
-          <div className="text-xl font-extrabold text-emerald-400 font-mono mt-1">
+          <div className="text-lg sm:text-xl font-extrabold text-emerald-400 font-mono mt-1">
             €{totals.totalEUR.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Base EUR items cost</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+        <div className="bg-slate-900 border border-slate-800 p-3.5 sm:p-4 rounded-2xl shadow-lg">
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Base SAR Cost</div>
-          <div className="text-xl font-extrabold text-slate-200 font-mono mt-1">
+          <div className="text-lg sm:text-xl font-extrabold text-slate-200 font-mono mt-1">
             SAR {totalBaseCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Converted Base Cost</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+        <div className="bg-slate-900 border border-slate-800 p-3.5 sm:p-4 rounded-2xl shadow-lg">
           <div className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Total Profit Added</div>
-          <div className="text-xl font-extrabold text-amber-300 font-mono mt-1">
+          <div className="text-lg sm:text-xl font-extrabold text-amber-300 font-mono mt-1">
             SAR {totalProfitSAR.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Margin added value</div>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 border border-blue-500/30 p-4 rounded-2xl shadow-xl">
+        <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 border border-blue-500/30 p-3.5 sm:p-4 rounded-2xl shadow-xl">
           <div className="text-xs font-bold text-blue-300 uppercase tracking-wider">Final BOQ Total Value</div>
-          <div className="text-2xl font-black text-white font-mono mt-1">
+          <div className="text-xl sm:text-2xl font-black text-white font-mono mt-1">
             SAR {totalFinalBOQValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
           <div className="text-[11px] text-blue-400/80 mt-1">Profit Included Final Client Price</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+        <div className="bg-slate-900 border border-slate-800 p-3.5 sm:p-4 rounded-2xl shadow-lg">
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overall Margin %</div>
-          <div className="text-xl font-extrabold text-indigo-400 font-mono mt-1">
+          <div className="text-lg sm:text-xl font-extrabold text-indigo-400 font-mono mt-1">
             {profitMarginPercent.toFixed(1)}%
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Net profit ratio</div>
@@ -637,7 +641,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
       />
 
       {/* SECTION C: Notes & Terms */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3">
         <h3 className="text-sm font-bold text-white">Commercial Notes & Terms</h3>
         <textarea
           rows={3}

@@ -206,46 +206,50 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
     <div className="space-y-4">
 
       {/* Grid Controls Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 shadow-sm">
-        <div className="flex items-center space-x-3">
-          <span className="font-bold text-sm text-slate-200 flex items-center space-x-2">
-            <span>BOQ Items Data Grid</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20">
-              {items.length} Line Items
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90 p-3 sm:p-3.5 rounded-xl border border-slate-800 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            <span className="font-bold text-xs sm:text-sm text-slate-200">BOQ Items Grid</span>
+            <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20">
+              {items.length} Lines
             </span>
-          </span>
+          </div>
 
-          <div className="relative">
+          <div className="relative flex-1 max-w-full sm:max-w-xs">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
             <input
               type="text"
-              placeholder="Search items..."
+              placeholder="Search line items..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-300 focus:outline-none focus:border-blue-500 w-44 sm:w-60"
+              className="w-full bg-slate-950 border border-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-300 focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
 
         {!readOnly && (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setPasteModalOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
+              className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
             >
               <ClipboardPaste className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Bulk Paste Excel</span>
+              <span>Bulk Paste</span>
             </button>
 
             <button
               onClick={handleAddRow}
-              className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-md shadow-blue-600/20 transition-all"
+              className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-md shadow-blue-600/20 transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>Add Row</span>
             </button>
           </div>
         )}
+      </div>
+
+      <div className="sm:hidden text-[11px] text-slate-400 flex items-center justify-end px-1">
+        <span>↔ Scroll horizontally to view all columns</span>
       </div>
 
       {/* Main Data Grid Container with Horizontal Scroll */}
@@ -350,7 +354,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                             step="1"
                             value={item.quantity}
                             onChange={(e) => handleCellChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                            className="w-full text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-blue-500"
+                            className="w-full min-w-[55px] text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-blue-500"
                           />
                         )}
                       </td>
@@ -410,8 +414,8 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                               disabled={!item.isManualSAR}
                               onChange={(e) => handleCellChange(idx, 'unitPriceSAR', parseFloat(e.target.value) || 0)}
                               className={`w-full text-center bg-slate-950 border rounded px-1.5 py-1 text-xs font-mono font-semibold focus:outline-none ${item.isManualSAR
-                                  ? 'border-amber-500/80 text-amber-300 bg-amber-950/20'
-                                  : 'border-slate-800 text-slate-400'
+                                ? 'border-amber-500/80 text-amber-300 bg-amber-950/20'
+                                : 'border-slate-800 text-slate-400'
                                 }`}
                             />
                             <label className="flex items-center justify-end space-x-1 cursor-pointer select-none">

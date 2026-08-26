@@ -63,11 +63,11 @@ export const TemplatesModal: React.FC<TemplatesModalProps> = ({
   const allTemplates = [...DEFAULT_PRESET_TEMPLATES, ...templates];
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-5 sm:space-y-6 max-w-4xl mx-auto">
+      <div className="flex items-start sm:items-center justify-between border-b border-slate-800 pb-3 gap-2">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-            <Bookmark className="w-5 h-5 text-amber-400" />
+          <h2 className="text-base sm:text-lg font-bold text-white flex items-center space-x-2">
+            <Bookmark className="w-5 h-5 text-amber-400 flex-shrink-0" />
             <span>Standard System BOQ Templates</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -76,17 +76,17 @@ export const TemplatesModal: React.FC<TemplatesModalProps> = ({
         </div>
 
         {onClose && (
-          <button onClick={onClose} className="text-slate-400 hover:text-white font-bold">
+          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-white font-bold" aria-label="Close modal">
             ✕
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {allTemplates.map(tmpl => (
           <div
             key={tmpl.id}
-            className="bg-slate-950 border border-slate-800 hover:border-blue-500/60 p-5 rounded-2xl flex flex-col justify-between space-y-4 group transition-all"
+            className="bg-slate-950 border border-slate-800 hover:border-blue-500/60 p-4 sm:p-5 rounded-2xl flex flex-col justify-between space-y-4 group transition-all"
           >
             <div className="space-y-2">
               <div className="flex items-center justify-between">

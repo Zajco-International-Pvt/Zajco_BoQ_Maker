@@ -30,8 +30,8 @@ export const AppContent: React.FC = () => {
 
   const [isDataLoading, setIsDataLoading] = useState<boolean>(false);
 
-  // Selected BOQ for editing/viewing
   const [editingBOQ, setEditingBOQ] = useState<BOQ | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Load backend data whenever auth state, profile or permissions are updated
   useEffect(() => {
@@ -71,7 +71,7 @@ export const AppContent: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center text-white space-y-4">
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center text-white space-y-4 p-4 text-center">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         <div className="font-semibold text-sm text-slate-400">Loading ZAJCO BOQ Maker Platform...</div>
       </div>
@@ -101,12 +101,18 @@ export const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
       {/* Top Header */}
-      <Header settings={settings} />
+      <Header
+        settings={settings}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
 
-      <div className="flex flex-1">
-        {/* Left Sidebar */}
+      <div className="flex flex-1 relative">
+        {/* Left Sidebar (Desktop fixed & Mobile sliding drawer) */}
         <Sidebar
           currentTab={currentTab}
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
           onSelectTab={(tab) => {
             if (tab === 'create-boq') {
               setEditingBOQ(null);
@@ -116,7 +122,7 @@ export const AppContent: React.FC = () => {
         />
 
         {/* Main Workspace View Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-5 lg:p-8 max-w-7xl mx-auto w-full overflow-x-hidden">
           
           {currentTab === 'dashboard' && (
             <DashboardOverview
