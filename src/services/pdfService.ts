@@ -38,14 +38,14 @@ export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
   doc.setFillColor(241, 245, 249);
   doc.rect(14, metaTop, pageWidth - 28, 20, 'F');
 
-  doc.text(`Project Name: ${boq.projectName || '-'}`, 18, metaTop + 6);
-  doc.text(`Client: ${boq.client || '-'}`, 18, metaTop + 14);
+  doc.text(`BOQ No: ${boq.boqNumber}`, 18, metaTop + 6);
+  doc.text(`Date: ${boq.date} | Rev ${boq.revision ?? 0}`, 18, metaTop + 14);
 
   doc.text(`System: ${boq.system || '-'}`, 100, metaTop + 6);
   doc.text(`Brand: ${boq.brand || '-'}`, 100, metaTop + 14);
 
-  doc.text(`Main Contractor: ${boq.contractor || '-'}`, 180, metaTop + 6);
-  doc.text(`Prepared By: ${boq.preparedBy || '-'}`, 180, metaTop + 14);
+  doc.text(`Prepared By: ${boq.preparedBy || '-'}`, 180, metaTop + 6);
+  doc.text(`Checked By: ${boq.checkedBy || '-'}`, 180, metaTop + 14);
 
   // Table Data
   const headers = [
@@ -133,7 +133,8 @@ export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
     }
   });
 
-  const safeProj = (boq.projectName || 'BOQ').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const safeNum = (boq.boqNumber || '001').replace(/[^a-zA-Z0-9_-]/g, '_');
-  doc.save(`BOQ-${safeNum}-${safeProj}.pdf`);
+  const safeProj = boq.projectName ? boq.projectName.replace(/[^a-zA-Z0-9_-]/g, '_') : '';
+  const safeNum = (boq.boqNumber || 'BOQ-001').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = safeProj ? `${safeNum}-${safeProj}.pdf` : `${safeNum}.pdf`;
+  doc.save(filename);
 };

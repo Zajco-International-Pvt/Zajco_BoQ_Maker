@@ -51,18 +51,18 @@ export const exportBOQToExcel = async (
   subHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
   worksheet.getRow(2).height = 24;
 
-  // Project Info Table (Rows 4 - 8)
+  // Project Info Table (Rows 4 - 6)
   const metaStyle = { font: { name: 'Arial', size: 10, bold: true }, fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFF1F5F9' } } };
   const valStyle = { font: { name: 'Arial', size: 10 } };
 
   worksheet.getCell('A4').value = 'BOQ Number:';
   worksheet.getCell('A4').style = metaStyle;
-  worksheet.getCell('B4').value = boq.boqNumber;
+  worksheet.getCell('B4').value = boq.boqNumber || '';
   worksheet.getCell('B4').style = valStyle;
 
   worksheet.getCell('D4').value = 'Date:';
   worksheet.getCell('D4').style = metaStyle;
-  worksheet.getCell('E4').value = boq.date;
+  worksheet.getCell('E4').value = boq.date || '';
   worksheet.getCell('E4').style = valStyle;
 
   worksheet.getCell('G4').value = 'Revision:';
@@ -70,52 +70,32 @@ export const exportBOQToExcel = async (
   worksheet.getCell('H4').value = `Rev ${boq.revision ?? 0}`;
   worksheet.getCell('H4').style = valStyle;
 
-  worksheet.getCell('A5').value = 'Project Name:';
+  worksheet.getCell('A5').value = 'System / Brand:';
   worksheet.getCell('A5').style = metaStyle;
-  worksheet.getCell('B5').value = boq.projectName;
+  worksheet.getCell('B5').value = `${boq.system || ''} / ${boq.brand || ''}`;
   worksheet.getCell('B5').style = valStyle;
 
-  worksheet.getCell('D5').value = 'Client:';
+  worksheet.getCell('D5').value = 'EUR to SAR Rate:';
   worksheet.getCell('D5').style = metaStyle;
-  worksheet.getCell('E5').value = boq.client;
+  worksheet.getCell('E5').value = conversionRate;
   worksheet.getCell('E5').style = valStyle;
 
-  worksheet.getCell('G5').value = 'System / Brand:';
+  worksheet.getCell('G5').value = 'Status:';
   worksheet.getCell('G5').style = metaStyle;
-  worksheet.getCell('H5').value = `${boq.system || ''} / ${boq.brand || ''}`;
+  worksheet.getCell('H5').value = boq.status || 'DRAFT';
   worksheet.getCell('H5').style = valStyle;
 
-  worksheet.getCell('A6').value = 'Main Contractor:';
+  worksheet.getCell('A6').value = 'Prepared By:';
   worksheet.getCell('A6').style = metaStyle;
-  worksheet.getCell('B6').value = boq.contractor;
+  worksheet.getCell('B6').value = boq.preparedBy || '';
   worksheet.getCell('B6').style = valStyle;
 
-  worksheet.getCell('D6').value = 'Consultant:';
+  worksheet.getCell('D6').value = 'Checked By:';
   worksheet.getCell('D6').style = metaStyle;
-  worksheet.getCell('E6').value = boq.consultant;
+  worksheet.getCell('E6').value = boq.checkedBy || '';
   worksheet.getCell('E6').style = valStyle;
 
-  worksheet.getCell('G6').value = 'EUR to SAR Rate:';
-  worksheet.getCell('G6').style = metaStyle;
-  worksheet.getCell('H6').value = conversionRate;
-  worksheet.getCell('H6').style = valStyle;
-
-  worksheet.getCell('A7').value = 'Prepared By:';
-  worksheet.getCell('A7').style = metaStyle;
-  worksheet.getCell('B7').value = boq.preparedBy;
-  worksheet.getCell('B7').style = valStyle;
-
-  worksheet.getCell('D7').value = 'Checked By:';
-  worksheet.getCell('D7').style = metaStyle;
-  worksheet.getCell('E7').value = boq.checkedBy;
-  worksheet.getCell('E7').style = valStyle;
-
-  worksheet.getCell('G7').value = 'Status:';
-  worksheet.getCell('G7').style = metaStyle;
-  worksheet.getCell('H7').value = boq.status;
-  worksheet.getCell('H7').style = valStyle;
-
-  // Table Column Headers at Row 10
+  // Table Column Headers at Row 9
   const headerTitle = boq.brand ? `${boq.brand.toUpperCase()} ITEM` : 'ITEM DESCRIPTION';
   const headers = [
     'S.No',
@@ -222,7 +202,7 @@ export const exportBOQToExcel = async (
         left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
       };
-      
+
       // Alignment & Number formats
       if (c === 1) cell.alignment = { horizontal: 'center' };
       else if (c === 2) cell.alignment = { horizontal: 'left', wrapText: true };
@@ -284,9 +264,9 @@ export const exportBOQToExcel = async (
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-  const safeProj = (boq.projectName || 'BOQ').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const safeNum = (boq.boqNumber || '001').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const filename = `BOQ-${safeNum}-${safeProj}.xlsx`;
+  const safeProj = boq.projectName ? boq.projectName.replace(/[^a-zA-Z0-9_-]/g, '_') : '';
+  const safeNum = (boq.boqNumber || 'BOQ-001').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = safeProj ? `${safeNum}-${safeProj}.xlsx` : `${safeNum}.xlsx`;
 
   return { blob, filename };
 };
@@ -344,7 +324,7 @@ export const parseExcelFile = async (file: File): Promise<ExcelParseResult> => {
         for (let i = headerRowIndex + 1; i < rawData.length; i++) {
           const row = rawData[i];
           if (!row || row.length === 0) continue;
-          
+
           const rowObj: Record<string, any> = {};
           let hasContent = false;
 

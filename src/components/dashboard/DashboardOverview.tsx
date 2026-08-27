@@ -180,9 +180,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <thead className="bg-slate-950 text-slate-300 font-bold uppercase border-b border-slate-800">
               <tr>
                 <th className="p-3">BOQ No</th>
-                <th className="p-3">Project Name</th>
-                <th className="p-3">Client</th>
                 <th className="p-3">System</th>
+                <th className="p-3">Brand</th>
                 <th className="p-3 font-mono text-right">Value (SAR)</th>
                 <th className="p-3 text-center">Status</th>
                 <th className="p-3 text-center">Actions</th>
@@ -191,26 +190,30 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <tbody className="divide-y divide-slate-800 text-slate-300">
               {recentBOQs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-slate-500">
+                  <td colSpan={6} className="p-6 text-center text-slate-500">
                     No BOQs created yet. Click "+ Create New BOQ" to get started!
                   </td>
                 </tr>
               ) : (
                 recentBOQs.map(b => (
                   <tr key={b.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="p-3 font-mono font-bold text-blue-400">{b.boqNumber}</td>
-                    <td className="p-3 font-semibold text-white max-w-xs truncate">{b.projectName}</td>
-                    <td className="p-3 text-slate-400">{b.client || '-'}</td>
+                    <td className="p-3 font-mono font-bold text-blue-400">
+                      <div>{b.boqNumber}</div>
+                      {b.projectName && (
+                        <div className="text-[10px] text-slate-400 font-normal truncate max-w-xs">{b.projectName}</div>
+                      )}
+                    </td>
                     <td className="p-3">
                       <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
                         {b.system || 'General'}
                       </span>
                     </td>
+                    <td className="p-3 text-slate-300">{b.brand || '-'}</td>
                     <td className="p-3 text-right font-mono font-bold text-emerald-400">
                       SAR {(b.totalFinalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${b.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${b.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
                           b.status === 'SUBMITTED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
                             b.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
                               'bg-amber-500/10 text-amber-300 border-amber-500/30'

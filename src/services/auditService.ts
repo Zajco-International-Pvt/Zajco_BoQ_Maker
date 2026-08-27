@@ -1,4 +1,4 @@
-import { db } from '../config/firebase';
+import { db, auth } from '../config/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import type { AuditLog } from '../types';
 
@@ -12,10 +12,14 @@ export const logAuditEvent = async (
   boqNumber?: string
 ): Promise<void> => {
   try {
+    const currentUid = userId || auth.currentUser?.uid || '';
+    const currentEmail = userEmail || auth.currentUser?.email || 'user@zajco.com';
+    const currentName = userName || auth.currentUser?.displayName || 'User';
+
     const logData: Omit<AuditLog, 'id'> = {
-      userId,
-      userName: userName || 'Unknown User',
-      userEmail: userEmail || 'unknown@zajco.com',
+      userId: currentUid,
+      userName: currentName,
+      userEmail: currentEmail,
       action,
       details,
       boqId: boqId || '',

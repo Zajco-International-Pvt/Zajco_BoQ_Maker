@@ -3,14 +3,15 @@ import {
   Save,
   Send,
   FileSpreadsheet,
-  FileText,
-  History,
   Bookmark,
   ArrowLeft,
   CheckCircle,
   XCircle,
   AlertCircle,
-  Building
+  Building,
+  Loader2,
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import type { BOQ, BOQItem, BOQStatus, ItemLibraryProduct, SystemSettings } from '../../types';
 import { BOQDataGrid } from './BOQDataGrid';
@@ -47,18 +48,15 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
   onBack,
   onSaved
 }) => {
-  const { userProfile, isAdmin } = useAuth();
+  const { currentUser, userProfile, isAdmin } = useAuth();
 
   const [boqId, setBoqId] = useState<string | null>(initialBOQ?.id || null);
   const [boqNumber, setBoqNumber] = useState(initialBOQ?.boqNumber || generateBOQNumber());
   const [projectName, setProjectName] = useState(initialBOQ?.projectName || '');
   const [client, setClient] = useState(initialBOQ?.client || '');
-  const [contractor, setContractor] = useState(initialBOQ?.contractor || 'ZAJCO Contracting');
-  const [consultant, setConsultant] = useState(initialBOQ?.consultant || '');
-  const [location, setLocation] = useState(initialBOQ?.location || 'Riyadh, KSA');
   const [system, setSystem] = useState(initialBOQ?.system || 'Nurse Call');
   const [brand, setBrand] = useState(initialBOQ?.brand || 'Tunstall');
-  const [preparedBy, setPreparedBy] = useState(initialBOQ?.preparedBy || userProfile?.name || 'Eng. Specialist');
+  const [preparedBy, setPreparedBy] = useState(initialBOQ?.preparedBy || userProfile?.name || currentUser?.displayName || 'Eng. Specialist');
   const [checkedBy, setCheckedBy] = useState(initialBOQ?.checkedBy || 'Eng. Project Director');
   const [date, setDate] = useState(initialBOQ?.date || new Date().toISOString().split('T')[0]);
   const [revision, setRevision] = useState(initialBOQ?.revision ?? 0);
@@ -66,36 +64,26 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
   const [conversionRate, setConversionRate] = useState<number>(initialBOQ?.conversionRate || settings.eurToSarRate || 5);
   const [notes, setNotes] = useState(initialBOQ?.notes || '');
 
-  // Track original creator info so admin edits/draft saves never overwrite creator ownership
-  const [createdBy] = useState<string>(initialBOQ?.createdBy || userProfile?.uid || 'anonymous');
-  const [createdByName] = useState<string>(initialBOQ?.createdByName || userProfile?.name || 'User');
-  const [createdByEmail] = useState<string>(initialBOQ?.createdByEmail || userProfile?.email || '');
   const [createdAt] = useState<string>(initialBOQ?.createdAt || new Date().toISOString());
 
-  // Grid Items
   const [items, setItems] = useState<BOQItem[]>(() => {
     if (initialBOQ?.items && initialBOQ.items.length > 0) {
       return initialBOQ.items;
     }
-    // Default sample items
-    return []; //SAMPLE_TUNSTALL_ITEMS.map((item) => calculateBOQItemRow(item, settings.eurToSarRate || 5));
+    return [];
   });
 
-  // Auto-Save state
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Template Save Modal
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templateDesc, setTemplateDesc] = useState('');
 
-  // Lock status check
   const isLocked = status === 'APPROVED' && !isAdmin;
 
-  // Auto-recalculate items if conversion rate changes
   const handleRateChange = (newRate: number) => {
     setConversionRate(newRate);
     const updated = items.map(i => calculateBOQItemRow(i, newRate));
@@ -103,10 +91,9 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     setSaveStatus('unsaved');
   };
 
-  // Save BOQ to Firestore
   const handleSave = async (targetStatus: BOQStatus = status) => {
-    if (!projectName.trim()) {
-      setNotice({ type: 'error', message: 'Project Name is required before saving.' });
+    if (!boqNumber.trim()) {
+      setNotice({ type: 'error', message: 'BOQ Number is required before saving.' });
       return;
     }
 
@@ -116,14 +103,17 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
 
     try {
       const totals = recalculateBOQTotals(items);
+      const effectiveUserId = userProfile?.uid || currentUser?.uid || initialBOQ?.createdBy || '';
+      const effectiveUserName = userProfile?.name || currentUser?.displayName || initialBOQ?.createdByName || 'User';
+      const effectiveUserEmail = userProfile?.email || currentUser?.email || initialBOQ?.createdByEmail || '';
 
       const boqPayload: Omit<BOQ, 'id'> = {
-        boqNumber,
-        projectName,
-        client,
-        contractor,
-        consultant,
-        location,
+        boqNumber: boqNumber.trim(),
+        projectName: projectName.trim() || initialBOQ?.projectName || '',
+        client: client.trim() || initialBOQ?.client || '',
+        contractor: initialBOQ?.contractor || '',
+        consultant: initialBOQ?.consultant || '',
+        location: initialBOQ?.location || '',
         system,
         brand,
         preparedBy,
@@ -135,9 +125,9 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         conversionRate,
         ...totals,
         items,
-        createdBy: initialBOQ?.createdBy || createdBy,
-        createdByName: initialBOQ?.createdByName || createdByName,
-        createdByEmail: initialBOQ?.createdByEmail || createdByEmail,
+        createdBy: initialBOQ?.createdBy || effectiveUserId,
+        createdByName: initialBOQ?.createdByName || effectiveUserName,
+        createdByEmail: initialBOQ?.createdByEmail || effectiveUserEmail,
         createdAt: initialBOQ?.createdAt || createdAt,
         updatedAt: new Date().toISOString(),
         notes
@@ -145,10 +135,10 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
 
       let currentId = boqId;
       if (!currentId) {
-        currentId = await createBOQ(boqPayload, userProfile?.uid || '', userProfile?.name || '', userProfile?.email || '');
+        currentId = await createBOQ(boqPayload, effectiveUserId, effectiveUserName, effectiveUserEmail);
         setBoqId(currentId);
       } else {
-        await updateBOQ(currentId, { ...boqPayload, status: targetStatus }, userProfile?.uid || '', userProfile?.name || '', userProfile?.email || '');
+        await updateBOQ(currentId, { ...boqPayload, status: targetStatus }, effectiveUserId, effectiveUserName, effectiveUserEmail);
       }
 
       setStatus(targetStatus);
@@ -162,7 +152,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
       setNotice({
         type: 'error',
         message: isPermissionErr
-          ? 'Firestore Permission Error: Your Firebase Console rules currently block database writes. Please update Firestore Rules in Firebase Console to allow authenticated read/write.'
+          ? 'Firestore Permission Error: Your Firebase database rejected the write. Make sure you are logged in and your Firestore Rules in Firebase Console allow authenticated writes to the "boqs" collection.'
           : (err.message || 'Failed to save BOQ to database.')
       });
       setSaveStatus('unsaved');
@@ -171,23 +161,25 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     }
   };
 
-  // Submit BOQ for review
   const handleSubmitBOQ = async () => {
     await handleSave('SUBMITTED');
   };
 
-  // Excel Export
   const handleExportExcel = async () => {
     try {
       setActionLoading(true);
+      const effectiveUserId = userProfile?.uid || currentUser?.uid || initialBOQ?.createdBy || '';
+      const effectiveUserName = userProfile?.name || currentUser?.displayName || initialBOQ?.createdByName || 'User';
+      const effectiveUserEmail = userProfile?.email || currentUser?.email || initialBOQ?.createdByEmail || '';
+
       const tempBOQ: BOQ = {
         id: boqId || 'temp',
-        boqNumber,
-        projectName,
-        client,
-        contractor,
-        consultant,
-        location,
+        boqNumber: boqNumber.trim(),
+        projectName: projectName.trim() || initialBOQ?.projectName || '',
+        client: client.trim() || initialBOQ?.client || '',
+        contractor: initialBOQ?.contractor || '',
+        consultant: initialBOQ?.consultant || '',
+        location: initialBOQ?.location || '',
         system,
         brand,
         preparedBy,
@@ -199,9 +191,9 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         conversionRate,
         ...recalculateBOQTotals(items),
         items,
-        createdBy: initialBOQ?.createdBy || createdBy,
-        createdByName: initialBOQ?.createdByName || createdByName,
-        createdByEmail: initialBOQ?.createdByEmail || createdByEmail,
+        createdBy: initialBOQ?.createdBy || effectiveUserId,
+        createdByName: initialBOQ?.createdByName || effectiveUserName,
+        createdByEmail: initialBOQ?.createdByEmail || effectiveUserEmail,
         createdAt: initialBOQ?.createdAt || createdAt,
         updatedAt: new Date().toISOString()
       };
@@ -216,17 +208,20 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     }
   };
 
-  // PDF Export
   const handleExportPDF = () => {
     try {
+      const effectiveUserId = userProfile?.uid || currentUser?.uid || initialBOQ?.createdBy || '';
+      const effectiveUserName = userProfile?.name || currentUser?.displayName || initialBOQ?.createdByName || 'User';
+      const effectiveUserEmail = userProfile?.email || currentUser?.email || initialBOQ?.createdByEmail || '';
+
       const tempBOQ: BOQ = {
         id: boqId || 'temp',
-        boqNumber,
-        projectName,
-        client,
-        contractor,
-        consultant,
-        location,
+        boqNumber: boqNumber.trim(),
+        projectName: projectName.trim() || initialBOQ?.projectName || '',
+        client: client.trim() || initialBOQ?.client || '',
+        contractor: initialBOQ?.contractor || '',
+        consultant: initialBOQ?.consultant || '',
+        location: initialBOQ?.location || '',
         system,
         brand,
         preparedBy,
@@ -238,9 +233,9 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         conversionRate,
         ...recalculateBOQTotals(items),
         items,
-        createdBy: initialBOQ?.createdBy || createdBy,
-        createdByName: initialBOQ?.createdByName || createdByName,
-        createdByEmail: initialBOQ?.createdByEmail || createdByEmail,
+        createdBy: initialBOQ?.createdBy || effectiveUserId,
+        createdByName: initialBOQ?.createdByName || effectiveUserName,
+        createdByEmail: initialBOQ?.createdByEmail || effectiveUserEmail,
         createdAt: initialBOQ?.createdAt || createdAt,
         updatedAt: new Date().toISOString()
       };
@@ -250,7 +245,6 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     }
   };
 
-  // Create New Revision
   const handleCreateRevision = async () => {
     if (!boqId) {
       setNotice({ type: 'error', message: 'Please save the BOQ first before creating a revision.' });
@@ -258,14 +252,18 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     }
     try {
       setActionLoading(true);
+      const effectiveUserId = userProfile?.uid || currentUser?.uid || initialBOQ?.createdBy || '';
+      const effectiveUserName = userProfile?.name || currentUser?.displayName || initialBOQ?.createdByName || 'User';
+      const effectiveUserEmail = userProfile?.email || currentUser?.email || initialBOQ?.createdByEmail || '';
+
       const currentBOQ: BOQ = {
         id: boqId,
-        boqNumber,
-        projectName,
-        client,
-        contractor,
-        consultant,
-        location,
+        boqNumber: boqNumber.trim(),
+        projectName: projectName.trim() || initialBOQ?.projectName || '',
+        client: client.trim() || initialBOQ?.client || '',
+        contractor: initialBOQ?.contractor || '',
+        consultant: initialBOQ?.consultant || '',
+        location: initialBOQ?.location || '',
         system,
         brand,
         preparedBy,
@@ -277,14 +275,14 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         conversionRate,
         ...recalculateBOQTotals(items),
         items,
-        createdBy: initialBOQ?.createdBy || createdBy,
-        createdByName: initialBOQ?.createdByName || createdByName,
-        createdByEmail: initialBOQ?.createdByEmail || createdByEmail,
+        createdBy: initialBOQ?.createdBy || effectiveUserId,
+        createdByName: initialBOQ?.createdByName || effectiveUserName,
+        createdByEmail: initialBOQ?.createdByEmail || effectiveUserEmail,
         createdAt: initialBOQ?.createdAt || createdAt,
         updatedAt: new Date().toISOString()
       };
 
-      await createRevisionBOQ(currentBOQ, userProfile?.uid || '', userProfile?.name || '', userProfile?.email || '');
+      await createRevisionBOQ(currentBOQ, effectiveUserId, effectiveUserName, effectiveUserEmail);
       setRevision(prev => prev + 1);
       setStatus('DRAFT');
       setNotice({ type: 'success', message: `Created Revision ${revision + 1}!` });
@@ -295,7 +293,6 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     }
   };
 
-  // Save as Template
   const handleSaveAsTemplate = async () => {
     if (!templateName.trim()) return;
     try {
@@ -303,7 +300,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
       const cleanItems = items.map(({ id, ...rest }) => rest);
       await saveBOQTemplate({
         name: templateName,
-        description: templateDesc || `Template derived from ${projectName}`,
+        description: templateDesc || `Template derived from ${boqNumber || 'BOQ'}`,
         system,
         brand,
         defaultItems: cleanItems,
@@ -319,7 +316,6 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     }
   };
 
-  // Summary Card calculations
   const totals = recalculateBOQTotals(items);
   const totalBaseCost = totals.totalSAR;
   const totalProfitSAR = totals.totalProfit;
@@ -329,7 +325,6 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
   return (
     <div className="space-y-6 pb-20">
 
-      {/* Top Bar Navigation & Status Actions */}
       <div className="bg-slate-900/95 border border-slate-800 p-3 sm:p-4 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 shadow-xl sticky top-16 z-30 backdrop-blur-md">
         <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
           {onBack && (
@@ -345,7 +340,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight truncate">
-                {boqNumber}
+                {boqNumber || 'Untitled BOQ'}
               </h1>
               <span className={`px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider border ${status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
                   status === 'SUBMITTED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
@@ -361,7 +356,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
             </div>
 
             <div className="flex items-center space-x-2 text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">
-              <span className="truncate max-w-[200px] sm:max-w-xs">{projectName || 'Untitled BOQ Project'}</span>
+              <span className="truncate max-w-[200px] sm:max-w-xs">{system ? `${system} / ${brand || 'General'}` : 'BOQ Details'}</span>
               <span>•</span>
               <span className="text-slate-500 flex-shrink-0">
                 {saveStatus === 'saving' ? 'Saving...' :
@@ -372,7 +367,6 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-start md:justify-end">
           {isAdmin && status === 'SUBMITTED' && (
             <>
@@ -398,58 +392,59 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
             </>
           )}
 
+          {status === 'DRAFT' && (
+            <button
+              onClick={handleSubmitBOQ}
+              disabled={actionLoading}
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all disabled:opacity-40"
+              title="Submit for Admin Approval"
+            >
+              <Send className="w-4 h-4" />
+              <span>Submit</span>
+            </button>
+          )}
+
           <button
-            onClick={() => handleSave('DRAFT')}
+            onClick={() => handleSave()}
             disabled={actionLoading || isLocked}
-            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-colors disabled:opacity-40"
+            className="flex items-center space-x-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all disabled:opacity-40"
           >
-            <Save className="w-4 h-4 text-blue-400" />
+            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             <span>Save Draft</span>
           </button>
 
           <button
-            onClick={handleSubmitBOQ}
-            disabled={actionLoading || isLocked || status === 'SUBMITTED'}
-            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all disabled:opacity-40"
-          >
-            <Send className="w-4 h-4" />
-            <span>Submit</span>
-          </button>
-
-          <div className="h-6 w-px bg-slate-800 my-auto hidden lg:block" />
-
-          <button
             onClick={handleExportExcel}
             disabled={actionLoading}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold rounded-xl transition-colors"
-            title="Download Excel Spreadsheet"
+            className="flex items-center space-x-1 px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold transition-colors"
+            title="Download formatted Excel (.xlsx)"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            <Download className="w-4 h-4 text-emerald-400" />
             <span className="hidden sm:inline">Excel</span>
           </button>
 
           <button
             onClick={handleExportPDF}
             disabled={actionLoading}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors"
-            title="Download PDF Document"
+            className="flex items-center space-x-1 px-3 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-semibold transition-colors"
+            title="Download PDF Summary"
           >
-            <FileText className="w-4 h-4 text-rose-400" />
+            <FileSpreadsheet className="w-4 h-4 text-rose-400" />
             <span className="hidden sm:inline">PDF</span>
           </button>
 
           <button
             onClick={handleCreateRevision}
             disabled={actionLoading || !boqId}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors"
-            title="Create New Revision Snapshot"
+            className="flex items-center space-x-1 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors disabled:opacity-40"
+            title="Freeze and create next revision"
           >
-            <History className="w-4 h-4 text-amber-400" />
-            <span className="hidden sm:inline">New Rev</span>
+            <RefreshCw className="w-4 h-4 text-amber-400" />
+            <span className="hidden sm:inline">Revision</span>
           </button>
 
           <button
-            onClick={() => { setTemplateName(projectName + ' Template'); setTemplateModalOpen(true); }}
+            onClick={() => { setTemplateName(boqNumber ? `${boqNumber} Template` : 'BOQ Template'); setTemplateModalOpen(true); }}
             disabled={actionLoading}
             className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors"
             title="Save as Template"
@@ -470,82 +465,51 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         </div>
       )}
 
-      {/* SECTION A: Project Information */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-xl space-y-4 sm:space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-1">
           <h2 className="text-sm sm:text-base font-bold text-white flex items-center space-x-2">
             <Building className="w-5 h-5 text-blue-400 flex-shrink-0" />
-            <span>SECTION A — Project Information & Settings</span>
+            <span>SECTION A — BOQ Information & Settings</span>
           </h2>
           <span className="text-xs text-slate-500">Metadata & Conversion Rules</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">BOQ Number</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              BOQ Number <span className="text-rose-400 font-bold">*</span>
+            </label>
             <input
               type="text"
               value={boqNumber}
               onChange={(e) => { setBoqNumber(e.target.value); setSaveStatus('unsaved'); }}
               disabled={isLocked}
+              placeholder="e.g. BOQ-2026-001"
+              required
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-mono font-bold focus:outline-none focus:border-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Project Name *</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Project Name</label>
             <input
               type="text"
               value={projectName}
               onChange={(e) => { setProjectName(e.target.value); setSaveStatus('unsaved'); }}
-              placeholder="e.g. King Fahd Hospital Nurse Call System"
               disabled={isLocked}
+              placeholder="e.g. King Fahd Hospital Expansion"
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Client</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Client / Contractor</label>
             <input
               type="text"
               value={client}
               onChange={(e) => { setClient(e.target.value); setSaveStatus('unsaved'); }}
-              placeholder="Ministry of Health / Client Name"
               disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Main Contractor</label>
-            <input
-              type="text"
-              value={contractor}
-              onChange={(e) => { setContractor(e.target.value); setSaveStatus('unsaved'); }}
-              disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Consultant</label>
-            <input
-              type="text"
-              value={consultant}
-              onChange={(e) => { setConsultant(e.target.value); setSaveStatus('unsaved'); }}
-              placeholder="Dar Al-Handasah / Consultant"
-              disabled={isLocked}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Project Location</label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => { setLocation(e.target.value); setSaveStatus('unsaved'); }}
-              disabled={isLocked}
+              placeholder="e.g. Ministry of Health / SBG"
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
             />
           </div>
@@ -624,7 +588,6 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <div className="bg-slate-900 border border-slate-800 p-3.5 sm:p-4 rounded-2xl shadow-lg">
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total EUR Value</div>

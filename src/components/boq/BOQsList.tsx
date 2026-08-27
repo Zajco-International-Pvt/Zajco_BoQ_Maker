@@ -47,9 +47,11 @@ export const BOQsList: React.FC<BOQsListProps> = ({
   // Filtered BOQs
   const filteredBOQs = boqs.filter(b => {
     const matchesSearch = 
-      b.boqNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (b.boqNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (b.projectName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (b.client || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (b.system || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (b.brand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (b.preparedBy && b.preparedBy.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus = statusFilter === 'ALL' || b.status === statusFilter;
@@ -140,43 +142,45 @@ export const BOQsList: React.FC<BOQsListProps> = ({
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-slate-900 border border-slate-800 p-3 sm:p-4 rounded-2xl shadow-lg flex flex-col md:flex-row items-stretch md:items-center gap-2.5 sm:gap-3">
-        <div className="flex-1 min-w-0 relative">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 sm:top-3 text-slate-500" />
+      {/* Filter and Search Bar */}
+      <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between gap-4">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by BOQ No, Project, Client, Creator..."
+            placeholder="Search by BOQ #, System, Brand, Prepared by..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
           />
         </div>
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-          <div className="flex items-center space-x-1.5 flex-1 sm:flex-initial min-w-[130px]">
-            <Filter className="w-4 h-4 text-slate-500 flex-shrink-0" />
+        <div className="flex items-center space-x-3 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center space-x-1.5 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 flex-shrink-0">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-xs text-slate-400 font-semibold">Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
+              className="bg-transparent text-xs text-white focus:outline-none cursor-pointer"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="DRAFT">DRAFT</option>
-              <option value="SUBMITTED">SUBMITTED</option>
-              <option value="APPROVED">APPROVED</option>
-              <option value="REJECTED">REJECTED</option>
-              <option value="ARCHIVED">ARCHIVED</option>
+              <option value="ALL" className="bg-slate-900">All Status</option>
+              <option value="DRAFT" className="bg-slate-900">Draft</option>
+              <option value="SUBMITTED" className="bg-slate-900">Submitted</option>
+              <option value="APPROVED" className="bg-slate-900">Approved</option>
+              <option value="REJECTED" className="bg-slate-900">Rejected</option>
             </select>
           </div>
 
-          <div className="flex-1 sm:flex-initial min-w-[140px]">
+          <div className="flex items-center space-x-1.5 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 flex-shrink-0">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-xs text-slate-400 font-semibold">System:</span>
             <select
               value={systemFilter}
               onChange={(e) => setSystemFilter(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
+              className="bg-transparent text-xs text-white focus:outline-none cursor-pointer"
             >
-              <option value="ALL">All Systems</option>
+              <option value="ALL" className="bg-slate-900">All Systems</option>
               {settings.systemsList.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
@@ -190,9 +194,8 @@ export const BOQsList: React.FC<BOQsListProps> = ({
             <thead className="bg-slate-950 text-slate-300 font-bold uppercase tracking-wider border-b border-slate-800">
               <tr>
                 <th className="p-3.5">BOQ No</th>
-                <th className="p-3.5">Project Name</th>
-                <th className="p-3.5">Client</th>
                 <th className="p-3.5">System</th>
+                <th className="p-3.5">Brand</th>
                 <th className="p-3.5">Prepared By</th>
                 <th className="p-3.5">Date</th>
                 <th className="p-3.5 text-right">Value (SAR)</th>
@@ -204,7 +207,7 @@ export const BOQsList: React.FC<BOQsListProps> = ({
             <tbody className="divide-y divide-slate-800/60 text-slate-300">
               {filteredBOQs.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-slate-500">
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
                     No BOQs found matching your criteria.
                   </td>
                 </tr>
@@ -214,14 +217,18 @@ export const BOQsList: React.FC<BOQsListProps> = ({
 
                   return (
                     <tr key={boq.id} className="hover:bg-slate-800/50 transition-colors">
-                      <td className="p-3.5 font-mono font-bold text-blue-400">{boq.boqNumber}</td>
-                      <td className="p-3.5 font-semibold text-white max-w-xs truncate">{boq.projectName}</td>
-                      <td className="p-3.5 text-slate-400">{boq.client || '-'}</td>
+                      <td className="p-3.5 font-mono font-bold text-blue-400">
+                        <div>{boq.boqNumber}</div>
+                        {boq.projectName && (
+                          <div className="text-[10px] text-slate-400 font-normal truncate max-w-xs">{boq.projectName}</div>
+                        )}
+                      </td>
                       <td className="p-3.5">
                         <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
                           {boq.system || 'General'}
                         </span>
                       </td>
+                      <td className="p-3.5 text-slate-300">{boq.brand || '-'}</td>
                       <td className="p-3.5 text-slate-400">{boq.preparedBy || '-'}</td>
                       <td className="p-3.5 text-slate-400 font-mono">{boq.date}</td>
                       <td className="p-3.5 text-right font-mono font-bold text-emerald-400 text-sm">

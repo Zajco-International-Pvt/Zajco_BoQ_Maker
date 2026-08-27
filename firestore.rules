@@ -2,7 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -22,7 +21,6 @@ service cloud.firestore {
       );
     }
 
-    // Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && 
@@ -41,7 +39,6 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // BOQs Collection
     match /boqs/{boqId} {
       allow read: if isAuthenticated() && (
         isAdmin() || resource.data.createdBy == request.auth.uid
@@ -49,16 +46,14 @@ service cloud.firestore {
 
       allow create: if isAuthenticated() && 
         request.resource.data.createdBy == request.auth.uid &&
-        request.resource.data.status == 'DRAFT' &&
-        request.resource.data.projectName is string &&
-        request.resource.data.projectName.size() > 0 &&
+        (request.resource.data.status == 'DRAFT' || request.resource.data.status == 'SUBMITTED') &&
+        (!('projectName' in request.resource.data) || request.resource.data.projectName is string) &&
         request.resource.data.boqNumber is string;
 
       allow update: if isAuthenticated() && (
         isAdmin() || (
           resource.data.createdBy == request.auth.uid &&
-          (resource.data.status == 'DRAFT' || resource.data.status == 'REJECTED') &&
-          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) || request.resource.data.status == 'SUBMITTED')
+          (resource.data.status == 'DRAFT' || resource.data.status == 'REJECTED' || resource.data.status == 'SUBMITTED')
         )
       );
 
@@ -69,13 +64,11 @@ service cloud.firestore {
       );
     }
 
-    // Global Settings
     match /settings/{settingId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Item Library (Product Database)
     match /itemLibrary/{itemId} {
       allow read: if isAuthenticated();
       allow create, update: if isAuthenticated() &&
@@ -84,14 +77,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Vendor Price Database
     match /vendorPrices/{priceId} {
       allow read: if isAuthenticated();
       allow create, update: if isAuthenticated();
       allow delete: if isAdmin();
     }
 
-    // BOQ Templates
     match /templates/{templateId} {
       allow read: if isAuthenticated();
       allow create, update: if isAuthenticated() &&
@@ -100,15 +91,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Audit Logs (Append-Only)
     match /auditLogs/{logId} {
       allow read: if isAdmin();
       allow create: if isAuthenticated() &&
-        request.resource.data.userId == request.auth.uid &&
+        (request.resource.data.userId == request.auth.uid || !('userId' in request.resource.data) || request.resource.data.userId == '') &&
         request.resource.data.action is string &&
         request.resource.data.timestamp is string;
-      allow update, delete: if false; // Audit logs are immutable
+      allow update, delete: if false;
     }
-
   }
 }

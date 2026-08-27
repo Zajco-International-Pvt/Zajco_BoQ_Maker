@@ -59,8 +59,8 @@ export interface BOQRevision {
   createdByName: string;
   notes?: string;
   snapshotData: {
-    projectName: string;
-    client: string;
+    projectName?: string;
+    client?: string;
     totalEUR: number;
     totalSAR: number;
     totalFinalValue: number;
@@ -71,11 +71,11 @@ export interface BOQRevision {
 export interface BOQ {
   id: string;
   boqNumber: string;
-  projectName: string;
-  client: string;
-  contractor: string;
-  consultant: string;
-  location: string;
+  projectName?: string;
+  client?: string;
+  contractor?: string;
+  consultant?: string;
+  location?: string;
   system: string;
   brand: string;
   preparedBy: string;

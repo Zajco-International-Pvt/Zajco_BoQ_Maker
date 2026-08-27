@@ -387,7 +387,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                             step="0.01"
                             value={item.unitPriceEUR}
                             onChange={(e) => handleCellChange(idx, 'unitPriceEUR', parseFloat(e.target.value) || 0)}
-                            className="w-full text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-emerald-400 font-mono font-semibold focus:outline-none focus:border-blue-500"
+                            className="w-full min-w-[55px] text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-emerald-400 font-mono font-semibold focus:outline-none focus:border-blue-500"
                           />
                         )}
                       </td>

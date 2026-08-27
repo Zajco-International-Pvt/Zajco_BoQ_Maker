@@ -89,6 +89,9 @@ export const createBOQ = async (boqData: Omit<BOQ, 'id'>, userId: string, userNa
   const newDocRef = doc(boqsRef);
 
   const totals = recalculateBOQTotals(boqData.items || []);
+  const effectiveUserId = boqData.createdBy || userId || auth.currentUser?.uid || '';
+  const effectiveUserName = boqData.createdByName || userName || auth.currentUser?.displayName || 'User';
+  const effectiveUserEmail = boqData.createdByEmail || userEmail || auth.currentUser?.email || '';
 
   const newBOQ: BOQ = {
     ...boqData,
@@ -96,15 +99,15 @@ export const createBOQ = async (boqData: Omit<BOQ, 'id'>, userId: string, userNa
     ...totals,
     revision: boqData.revision ?? 0,
     status: boqData.status || 'DRAFT',
-    createdBy: boqData.createdBy || userId,
-    createdByName: boqData.createdByName || userName,
-    createdByEmail: boqData.createdByEmail || userEmail,
+    createdBy: effectiveUserId,
+    createdByName: effectiveUserName,
+    createdByEmail: effectiveUserEmail,
     createdAt: boqData.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
 
   await setDoc(newDocRef, newBOQ);
-  await logAuditEvent(userId, userName, userEmail, 'CREATE_BOQ', `Created BOQ ${newBOQ.boqNumber}`, newBOQ.id, newBOQ.boqNumber);
+  await logAuditEvent(effectiveUserId, effectiveUserName, effectiveUserEmail, 'CREATE_BOQ', `Created BOQ ${newBOQ.boqNumber}`, newBOQ.id, newBOQ.boqNumber);
 
   return newDocRef.id;
 };
@@ -127,7 +130,10 @@ export const updateBOQ = async (boqId: string, updates: Partial<BOQ>, userId: st
   };
 
   await updateDoc(boqRef, payload);
-  await logAuditEvent(userId, userName, userEmail, 'UPDATE_BOQ', `Updated BOQ details/items`, boqId, updates.boqNumber);
+  const effectiveUserId = userId || auth.currentUser?.uid || '';
+  const effectiveUserName = userName || auth.currentUser?.displayName || 'User';
+  const effectiveUserEmail = userEmail || auth.currentUser?.email || '';
+  await logAuditEvent(effectiveUserId, effectiveUserName, effectiveUserEmail, 'UPDATE_BOQ', `Updated BOQ details/items`, boqId, updates.boqNumber);
 };
 
 export const getBOQById = async (boqId: string): Promise<BOQ | null> => {
