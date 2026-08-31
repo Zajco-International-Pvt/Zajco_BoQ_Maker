@@ -2,8 +2,16 @@ import { db, auth } from '../config/firebase';
 import { 
   collection, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where 
 } from 'firebase/firestore';
-import type { BOQ, BOQItem, BOQRevision, BOQStatus } from '../types';
+import type { BOQ, BOQItem, BOQRevision, BOQStatus, BOQCalculationSummary } from '../types';
 import { logAuditEvent } from './auditService';
+
+// Helper to determine if an item is an installation/service line item
+export const isInstallationItem = (item: BOQItem | Partial<BOQItem>): boolean => {
+  if (item.isHeader) return false;
+  if (item.isInstallation === true) return true;
+  const desc = (item.description || '').toLowerCase();
+  return /installation|install|testing|commissioning|programming|supervision|labor|labour|service charge|services/i.test(desc);
+};
 
 // Helper for exact calculations per row
 export const calculateBOQItemRow = (item: Partial<BOQItem>, conversionRate: number = 5): BOQItem => {
@@ -25,6 +33,7 @@ export const calculateBOQItemRow = (item: Partial<BOQItem>, conversionRate: numb
       unitPriceProfitIncl: 0,
       totalProfitIncl: 0,
       isHeader: true,
+      isInstallation: false,
       isManualSAR: false,
       brand: item.brand || '',
       model: item.model || '',
@@ -35,7 +44,8 @@ export const calculateBOQItemRow = (item: Partial<BOQItem>, conversionRate: numb
 
   const quantity = Math.max(0, Number(item.quantity) || 0);
   const unitPriceEUR = Math.max(0, Number(item.unitPriceEUR) || 0);
-  const isManualSAR = !!item.isManualSAR;
+  const isInstallation = isInstallationItem(item);
+  const isManualSAR = item.isManualSAR !== undefined ? !!item.isManualSAR : (isInstallation || (Number(item.unitPriceSAR) > 0 && unitPriceEUR === 0));
   
   let unitPriceSAR = isManualSAR 
     ? Math.max(0, Number(item.unitPriceSAR) || 0)
@@ -73,10 +83,46 @@ export const calculateBOQItemRow = (item: Partial<BOQItem>, conversionRate: numb
     totalProfitIncl,
     isManualSAR,
     isHeader: false,
+    isInstallation,
     brand: item.brand || '',
     model: item.model || '',
     system: item.system || '',
     notes: item.notes || ''
+  };
+};
+
+export const computeBOQCalculationSummary = (items: BOQItem[]): BOQCalculationSummary => {
+  let purchaseBillAmountEUR = 0;
+  let purchaseBillAmountSAR = 0;
+  let sellingPriceWithoutInstallation = 0;
+  let installationAmount = 0;
+
+  items.forEach(item => {
+    if (item.isHeader) return;
+    const isInst = isInstallationItem(item);
+    if (isInst) {
+      installationAmount += (item.totalProfitIncl || 0);
+    } else {
+      purchaseBillAmountEUR += (item.totalEUR || 0);
+      purchaseBillAmountSAR += (item.totalSAR || 0);
+      sellingPriceWithoutInstallation += (item.totalProfitIncl || 0);
+    }
+  });
+
+  const sellingPriceWithInstallation = Number((sellingPriceWithoutInstallation + installationAmount).toFixed(2));
+  const profitAmount = Number((sellingPriceWithoutInstallation - purchaseBillAmountSAR).toFixed(2));
+  const profitPercentage = sellingPriceWithoutInstallation > 0
+    ? Number((profitAmount / sellingPriceWithoutInstallation).toFixed(4))
+    : 0;
+
+  return {
+    purchaseBillAmountEUR: Number(purchaseBillAmountEUR.toFixed(2)),
+    purchaseBillAmountSAR: Number(purchaseBillAmountSAR.toFixed(2)),
+    sellingPriceWithoutInstallation: Number(sellingPriceWithoutInstallation.toFixed(2)),
+    installationAmount: Number(installationAmount.toFixed(2)),
+    sellingPriceWithInstallation: Number(sellingPriceWithInstallation.toFixed(2)),
+    profitAmount: Number(profitAmount.toFixed(2)),
+    profitPercentage: Number(profitPercentage.toFixed(4))
   };
 };
 
@@ -87,6 +133,7 @@ export const recalculateBOQTotals = (items: BOQItem[]) => {
   let totalFinalValue = 0;
 
   items.forEach(i => {
+    if (i.isHeader) return;
     totalEUR += i.totalEUR || 0;
     totalSAR += i.totalSAR || 0;
     const itemProfitAmount = ((i.totalProfitIncl || 0) - (i.totalSAR || 0));
@@ -94,11 +141,14 @@ export const recalculateBOQTotals = (items: BOQItem[]) => {
     totalFinalValue += i.totalProfitIncl || 0;
   });
 
+  const calculationSummary = computeBOQCalculationSummary(items);
+
   return {
     totalEUR: Number(totalEUR.toFixed(2)),
     totalSAR: Number(totalSAR.toFixed(2)),
     totalProfit: Number(totalProfit.toFixed(2)),
-    totalFinalValue: Number(totalFinalValue.toFixed(2))
+    totalFinalValue: Number(totalFinalValue.toFixed(2)),
+    calculationSummary
   };
 };
 

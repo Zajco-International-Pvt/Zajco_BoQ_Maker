@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { BOQ, SystemSettings } from '../types';
+import { computeBOQCalculationSummary } from './boqService';
 
 export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
   const doc = new jsPDF({
@@ -148,6 +149,55 @@ export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
         if (data.column.index === 0) {
           data.cell.colSpan = 12;
         }
+      }
+    }
+  });
+
+  // Calculation Breakdown Summary Table
+  const summary = computeBOQCalculationSummary(boq.items || []);
+  const finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 6 : metaTop + 30;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let tableStartY = finalY;
+  if (finalY + 55 > pageHeight - 15) {
+    doc.addPage();
+    tableStartY = 15;
+  }
+
+  autoTable(doc, {
+    startY: tableStartY,
+    head: [['Calculation', 'Amount']],
+    body: [
+      ['Purchase Bill Amount (EUR)', `€ ${summary.purchaseBillAmountEUR.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ['Purchase Bill Amount (SAR)', `SAR ${summary.purchaseBillAmountSAR.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ['Our Selling Price without Installation Charge', `SAR ${summary.sellingPriceWithoutInstallation.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ['Installation , Testing and Commissioning', `SAR ${summary.installationAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ['Our Selling Price with Installation Charge', `SAR ${summary.sellingPriceWithInstallation.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ['Our Profit Amount', `SAR ${summary.profitAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ['Profit Percentage %', `${(summary.profitPercentage * 100).toFixed(1)}% (${summary.profitPercentage.toFixed(2)})`]
+    ],
+    theme: 'grid',
+    tableWidth: 150,
+    margin: { left: 14 },
+    headStyles: {
+      fillColor: [30, 58, 138],
+      textColor: [255, 255, 255],
+      fontSize: 8.5,
+      fontStyle: 'bold'
+    },
+    bodyStyles: {
+      fontSize: 7.5,
+      textColor: [51, 65, 85]
+    },
+    columnStyles: {
+      0: { cellWidth: 100, fontStyle: 'bold' },
+      1: { cellWidth: 50, halign: 'right', fontStyle: 'bold' }
+    },
+    didParseCell: (data) => {
+      if (data.row.index === 4) {
+        data.cell.styles.fillColor = [238, 242, 255]; // Soft indigo
+        data.cell.styles.textColor = [30, 58, 138];
+      } else if (data.row.index === 5) {
+        data.cell.styles.textColor = [5, 150, 105]; // Emerald for profit
       }
     }
   });

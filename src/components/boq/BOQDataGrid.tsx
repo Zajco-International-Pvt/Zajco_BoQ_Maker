@@ -8,10 +8,11 @@ import {
   Search,
   ClipboardPaste,
   Heading,
-  Type
+  Type,
+  Wrench
 } from 'lucide-react';
 import type { BOQItem, ItemLibraryProduct } from '../../types';
-import { calculateBOQItemRow } from '../../services/boqService';
+import { calculateBOQItemRow, isInstallationItem } from '../../services/boqService';
 
 interface BOQDataGridProps {
   items: BOQItem[];
@@ -52,6 +53,11 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
     if (readOnly) return;
     const updated = [...items];
     const item = { ...updated[index], [field]: value };
+
+    // If changing unitPriceSAR directly and EUR is 0, auto-enable isManualSAR
+    if (field === 'unitPriceSAR' && (!item.unitPriceEUR || item.unitPriceEUR === 0)) {
+      item.isManualSAR = true;
+    }
 
     // Recalculate row
     const recalculated = calculateBOQItemRow(item, conversionRate);
@@ -99,6 +105,31 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
     onChangeItems(newItems);
   };
 
+  // Add new installation / service row
+  const handleAddInstallationRow = (insertAtIdx?: number) => {
+    if (readOnly) return;
+    const newInstRaw: Partial<BOQItem> = {
+      description: 'Installation , Testing and Commissioning',
+      quantity: 1,
+      pricingSource: 'Management',
+      unitPriceEUR: 0,
+      unitPriceSAR: 0,
+      profitPercentage: 0,
+      isManualSAR: true,
+      isInstallation: true,
+      isHeader: false
+    };
+    const calculated = calculateBOQItemRow(newInstRaw, conversionRate);
+    const updated = [...items];
+    if (typeof insertAtIdx === 'number') {
+      updated.splice(insertAtIdx, 0, calculated);
+    } else {
+      updated.push(calculated);
+    }
+    const newItems = renumberItems(updated);
+    onChangeItems(newItems);
+  };
+
   // Toggle between Header Row and Normal Line Item Row
   const handleToggleHeader = (index: number) => {
     if (readOnly) return;
@@ -111,6 +142,21 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
       quantity: isNowHeader ? 0 : (target.quantity || 1),
       unitPriceEUR: isNowHeader ? 0 : target.unitPriceEUR,
       profitPercentage: isNowHeader ? null : (target.profitPercentage ?? 15)
+    }, conversionRate);
+    onChangeItems(renumberItems(updated));
+  };
+
+  // Toggle Installation / Service status on a row
+  const handleToggleInstallation = (index: number) => {
+    if (readOnly) return;
+    const target = items[index];
+    if (target.isHeader) return;
+    const currentIsInst = isInstallationItem(target);
+    const updated = [...items];
+    updated[index] = calculateBOQItemRow({
+      ...target,
+      isInstallation: !currentIsInst,
+      isManualSAR: !currentIsInst ? true : target.isManualSAR
     }, conversionRate);
     onChangeItems(renumberItems(updated));
   };
@@ -271,7 +317,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
         </div>
 
         {!readOnly && (
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap">
             <button
               onClick={() => setPasteModalOpen(true)}
               className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
@@ -287,6 +333,15 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
             >
               <Heading className="w-3.5 h-3.5 text-indigo-400" />
               <span>Add Header Row</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleAddInstallationRow()}
+              className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 hover:text-amber-200 text-xs font-bold rounded-lg border border-amber-500/40 shadow-sm transition-all"
+            >
+              <Wrench className="w-3.5 h-3.5 text-amber-400" />
+              <span>Add Installation Row</span>
             </button>
 
             <button
@@ -444,6 +499,12 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
 
                       {/* Description with Autocomplete */}
                       <td className="p-1.5 relative sticky left-12 bg-slate-900 z-10 group-hover:bg-slate-800">
+                        {isInstallationItem(item) && (
+                          <div className="flex items-center space-x-1 px-1.5 py-0.5 mb-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-extrabold uppercase tracking-wider w-fit select-none">
+                            <Wrench className="w-2.5 h-2.5 text-amber-400" />
+                            <span>INSTALLATION & COMMISSIONING</span>
+                          </div>
+                        )}
                         {readOnly ? (
                           <div className="px-2 py-1 text-slate-200 font-medium whitespace-pre-wrap">{item.description}</div>
                         ) : (
@@ -617,6 +678,18 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                       {!readOnly && (
                         <td className="p-1.5 text-center">
                           <div className="flex items-center justify-center space-x-1">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleInstallation(idx)}
+                              title={isInstallationItem(item) ? "Marked as Installation/Service (Click to toggle)" : "Mark as Installation / Service"}
+                              className={`p-1 rounded transition-colors ${
+                                isInstallationItem(item)
+                                  ? 'text-amber-300 bg-amber-500/20 hover:bg-amber-500/30'
+                                  : 'text-slate-400 hover:text-amber-400 hover:bg-amber-500/10'
+                              }`}
+                            >
+                              <Wrench className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleToggleHeader(idx)}

@@ -11,7 +11,8 @@ import {
   Building,
   Loader2,
   Download,
-  RefreshCw
+  RefreshCw,
+  Calculator
 } from 'lucide-react';
 import type { BOQ, BOQItem, BOQStatus, ItemLibraryProduct, SystemSettings } from '../../types';
 import { BOQDataGrid } from './BOQDataGrid';
@@ -639,6 +640,79 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         itemLibrary={itemLibrary}
         pricingSources={settings.pricingSourcesList}
       />
+
+      {/* SECTION: Commercial Calculation Breakdown Summary */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center space-x-2">
+              <Calculator className="w-4 h-4 text-blue-400" />
+              <span>Commercial Calculation Breakdown</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Supply cost, installation charge, selling price, and profit margin analysis
+            </p>
+          </div>
+          <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 w-fit">
+            Executive Summary
+          </span>
+        </div>
+
+        <div className="overflow-hidden border border-slate-800 rounded-xl">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-950 text-slate-300 font-bold border-b border-slate-800">
+              <tr>
+                <th className="p-3">Calculation</th>
+                <th className="p-3 text-right w-48 sm:w-64">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800 text-slate-200">
+              <tr className="hover:bg-slate-800/40 transition-colors">
+                <td className="p-3 font-medium text-slate-300">Purchase Bill Amount (EUR)</td>
+                <td className="p-3 text-right font-mono font-bold text-emerald-400">
+                  €{(totals.calculationSummary?.purchaseBillAmountEUR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+              <tr className="hover:bg-slate-800/40 transition-colors">
+                <td className="p-3 font-medium text-slate-300">Purchase Bill Amount (SAR)</td>
+                <td className="p-3 text-right font-mono font-bold text-slate-200">
+                  SAR {(totals.calculationSummary?.purchaseBillAmountSAR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+              <tr className="hover:bg-slate-800/40 transition-colors">
+                <td className="p-3 font-medium text-slate-300">Our Selling Price without Installation Charge</td>
+                <td className="p-3 text-right font-mono font-bold text-blue-300">
+                  SAR {(totals.calculationSummary?.sellingPriceWithoutInstallation ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+              <tr className="hover:bg-slate-800/40 transition-colors">
+                <td className="p-3 font-medium text-slate-300">Installation , Testing and Commissioning</td>
+                <td className="p-3 text-right font-mono font-bold text-amber-300">
+                  SAR {(totals.calculationSummary?.installationAmount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+              <tr className="bg-blue-950/20 hover:bg-blue-950/30 transition-colors">
+                <td className="p-3 font-extrabold text-white">Our Selling Price with Installation Charge</td>
+                <td className="p-3 text-right font-mono font-black text-white text-sm">
+                  SAR {(totals.calculationSummary?.sellingPriceWithInstallation ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+              <tr className="hover:bg-slate-800/40 transition-colors">
+                <td className="p-3 font-bold text-emerald-400">Our Profit Amount</td>
+                <td className="p-3 text-right font-mono font-extrabold text-emerald-400 text-sm">
+                  SAR {(totals.calculationSummary?.profitAmount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+              <tr className="hover:bg-slate-800/40 transition-colors">
+                <td className="p-3 font-bold text-indigo-400">Profit Percentage %</td>
+                <td className="p-3 text-right font-mono font-extrabold text-indigo-300">
+                  {((totals.calculationSummary?.profitPercentage ?? 0) * 100).toFixed(1)}% <span className="text-slate-400 text-[11px] font-normal">({(totals.calculationSummary?.profitPercentage ?? 0).toFixed(2)})</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* SECTION C: Notes & Terms */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3">

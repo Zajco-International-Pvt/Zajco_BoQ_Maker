@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateBOQItemRow, recalculateBOQTotals, generateBOQNumber } from '../services/boqService';
+import { calculateBOQItemRow, recalculateBOQTotals, generateBOQNumber, computeBOQCalculationSummary } from '../services/boqService';
 import type { BOQItem } from '../types';
 
 describe('BOQ Calculations Engine Tests', () => {
@@ -106,9 +106,63 @@ describe('BOQ Calculations Engine Tests', () => {
     expect(totals.totalFinalValue).toBe(1200);
   });
 
+  it('should correctly compute commercial calculation summary (Purchase SAR, Selling price with/without installation, Profit amount, Profit %)', () => {
+    // Supply items: Purchase SAR = 17,430.35, Selling = 21,932.76
+    // Installation item: 8,750.00
+    const supplyItem: Partial<BOQItem> = {
+      serialNumber: 1,
+      description: 'Nurse Call Supply Hardware Packages',
+      quantity: 1,
+      unitPriceEUR: 3486.07,
+      unitPriceSAR: 17430.35,
+      isManualSAR: true,
+      profitPercentage: 25.83086386
+    };
+
+    const installItem: Partial<BOQItem> = {
+      serialNumber: 2,
+      description: 'Installation , Testing and Commissioning',
+      quantity: 1,
+      unitPriceEUR: 0,
+      unitPriceSAR: 8750.00,
+      isManualSAR: true,
+      profitPercentage: 0
+    };
+
+    const calcSupply = calculateBOQItemRow(supplyItem, 5);
+    const calcInstall = calculateBOQItemRow(installItem, 5);
+
+    const summary = computeBOQCalculationSummary([calcSupply, calcInstall]);
+
+    expect(summary.purchaseBillAmountSAR).toBe(17430.35);
+    expect(summary.sellingPriceWithoutInstallation).toBe(21932.76);
+    expect(summary.installationAmount).toBe(8750.00);
+    expect(summary.sellingPriceWithInstallation).toBe(30682.76);
+    expect(summary.profitAmount).toBe(4502.41);
+    expect(summary.profitPercentage).toBeCloseTo(0.21, 2);
+  });
+
+  it('should dynamically reflect installation row when description is updated or toggled', () => {
+    const row = calculateBOQItemRow({
+      description: 'Installation & Testing',
+      quantity: 1,
+      unitPriceSAR: 5000,
+      unitPriceEUR: 0
+    }, 5);
+
+    expect(row.isInstallation).toBe(true);
+    expect(row.isManualSAR).toBe(true);
+    expect(row.totalSAR).toBe(5000);
+    expect(row.totalProfitIncl).toBe(5000);
+
+    const totals = recalculateBOQTotals([row]);
+    expect(totals.calculationSummary.installationAmount).toBe(5000);
+    expect(totals.calculationSummary.sellingPriceWithInstallation).toBe(5000);
+    expect(totals.calculationSummary.sellingPriceWithoutInstallation).toBe(0);
+  });
+
   it('should generate valid auto BOQ number format', () => {
     const boqNum = generateBOQNumber(42, 'BOQ-ZJO');
     expect(boqNum).toMatch(/^BOQ-ZJO-\d{2}-\d{2}-\d{2}-042$/);
   });
-
 });

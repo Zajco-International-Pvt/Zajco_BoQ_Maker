@@ -37,10 +37,21 @@ export interface BOQItem {
   totalProfitIncl: number;
   isManualSAR?: boolean; // If true, EUR conversion doesn't overwrite unitPriceSAR
   isHeader?: boolean; // If true, row acts as a section header/category title
+  isInstallation?: boolean; // If true, row represents installation/testing/commissioning service
   brand?: string;
   model?: string;
   system?: string;
   notes?: string;
+}
+
+export interface BOQCalculationSummary {
+  purchaseBillAmountEUR: number;
+  purchaseBillAmountSAR: number;
+  sellingPriceWithoutInstallation: number;
+  installationAmount: number;
+  sellingPriceWithInstallation: number;
+  profitAmount: number;
+  profitPercentage: number;
 }
 
 export interface BOQAttachment {
@@ -91,6 +102,7 @@ export interface BOQ {
   totalSAR: number;
   totalProfit: number;
   totalFinalValue: number;
+  calculationSummary?: BOQCalculationSummary;
   items: BOQItem[];
   createdBy: string;
   createdByName?: string;

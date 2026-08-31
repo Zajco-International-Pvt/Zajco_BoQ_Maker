@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
 import type { BOQ, SystemSettings } from '../types';
+import { computeBOQCalculationSummary } from './boqService';
 
 export interface ColumnMapping {
   serialNumber: string;
@@ -249,9 +250,11 @@ export const exportBOQToExcel = async (
   });
 
   // Totals Row
+  let lastRowIdx = startRowIdx;
   if (items.length > 0) {
     const endRowIdx = startRowIdx + items.length - 1;
     const totalRowIdx = endRowIdx + 2; // Leave one blank row or direct
+    lastRowIdx = totalRowIdx;
     const totalRow = worksheet.getRow(totalRowIdx);
 
     totalRow.getCell(2).value = 'TOTAL';
@@ -282,6 +285,78 @@ export const exportBOQToExcel = async (
       };
     }
   }
+
+  // Calculation Breakdown Summary Table
+  const calcStartRow = lastRowIdx + 3;
+  const summary = computeBOQCalculationSummary(items);
+
+  // Summary Table Header Row
+  worksheet.mergeCells(`B${calcStartRow}:D${calcStartRow}`);
+  const calcHeaderCell = worksheet.getCell(`B${calcStartRow}`);
+  calcHeaderCell.value = 'Calculation';
+  calcHeaderCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+  calcHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+  calcHeaderCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+
+  worksheet.mergeCells(`E${calcStartRow}:F${calcStartRow}`);
+  const calcAmountCell = worksheet.getCell(`E${calcStartRow}`);
+  calcAmountCell.value = 'Amount';
+  calcAmountCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+  calcAmountCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+  calcAmountCell.alignment = { horizontal: 'right', vertical: 'middle' };
+
+  for (let c = 2; c <= 6; c++) {
+    const cell = worksheet.getRow(calcStartRow).getCell(c);
+    cell.border = {
+      top: { style: 'medium', color: { argb: 'FF0F172A' } },
+      bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+      left: { style: 'thin', color: { argb: 'FF94A3B8' } },
+      right: { style: 'thin', color: { argb: 'FF94A3B8' } }
+    };
+  }
+  worksheet.getRow(calcStartRow).height = 24;
+
+  const summaryRowsData = [
+    { label: 'Purchase Bill Amount (EUR)', val: summary.purchaseBillAmountEUR, numFmt: '€#,##0.00' },
+    { label: 'Purchase Bill Amount (SAR)', val: summary.purchaseBillAmountSAR, numFmt: '#,##0.00' },
+    { label: 'Our Selling Price without Installation Charge', val: summary.sellingPriceWithoutInstallation, numFmt: '#,##0.00', bold: true },
+    { label: 'Installation , Testing and Commissioning', val: summary.installationAmount, numFmt: '#,##0.00' },
+    { label: 'Our Selling Price with Installation Charge', val: summary.sellingPriceWithInstallation, numFmt: '#,##0.00', bold: true, highlight: true },
+    { label: 'Our Profit Amount', val: summary.profitAmount, numFmt: '#,##0.00', isProfit: true },
+    { label: 'Profit Percentage %', val: summary.profitPercentage, numFmt: '0.00%' }
+  ];
+
+  summaryRowsData.forEach((sRow, sIdx) => {
+    const curRowIdx = calcStartRow + 1 + sIdx;
+    const r = worksheet.getRow(curRowIdx);
+
+    worksheet.mergeCells(`B${curRowIdx}:D${curRowIdx}`);
+    const lblCell = r.getCell(2);
+    lblCell.value = sRow.label;
+    lblCell.font = { name: 'Arial', size: 9.5, bold: !!sRow.bold };
+    lblCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+
+    worksheet.mergeCells(`E${curRowIdx}:F${curRowIdx}`);
+    const valCell = r.getCell(5);
+    valCell.value = sRow.val;
+    valCell.font = { name: 'Arial', size: 9.5, bold: !!sRow.bold, color: sRow.isProfit ? { argb: 'FF059669' } : undefined };
+    valCell.alignment = { horizontal: 'right', vertical: 'middle' };
+    valCell.numFmt = sRow.numFmt;
+
+    const bgArgb = sRow.highlight ? 'FFEFF6FF' : (sIdx % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC');
+
+    for (let c = 2; c <= 6; c++) {
+      const cell = r.getCell(c);
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+      };
+    }
+    r.height = 20;
+  });
 
   // Column Widths
   const colWidths = [8, 45, 10, 22, 16, 20, 16, 22, 18, 18, 20, 22];

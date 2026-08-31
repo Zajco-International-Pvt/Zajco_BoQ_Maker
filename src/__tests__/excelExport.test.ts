@@ -175,5 +175,26 @@ describe('Excel Export Service Tests', () => {
     const normalRow = worksheet?.getRow(12);
     expect(normalRow?.getCell(1).value).toBe(1);
     expect(normalRow?.getCell(3).value).toBe(5);
+
+    // Verify Calculation Summary Table in Excel
+    // totalRowIdx = 12 + 2 = 14; calcStartRow = 14 + 3 = 17
+    const calcHeader = worksheet?.getRow(17);
+    expect(calcHeader?.getCell(2).value).toBe('Calculation');
+    expect(calcHeader?.getCell(5).value).toBe('Amount');
+
+    // Row 18: Purchase Bill Amount (EUR)
+    const calcRow1 = worksheet?.getRow(18);
+    expect(calcRow1?.getCell(2).value).toBe('Purchase Bill Amount (EUR)');
+    expect(calcRow1?.getCell(5).value).toBe(1000); // 5 * 200
+
+    // Row 19: Purchase Bill Amount (SAR)
+    const calcRow2 = worksheet?.getRow(19);
+    expect(calcRow2?.getCell(2).value).toBe('Purchase Bill Amount (SAR)');
+    expect(calcRow2?.getCell(5).value).toBe(5000); // 1000 * 5
+
+    // Row 20: Selling Price without Installation Charge
+    const calcRow3 = worksheet?.getRow(20);
+    expect(calcRow3?.getCell(2).value).toBe('Our Selling Price without Installation Charge');
+    expect(calcRow3?.getCell(5).value).toBe(6000); // 5000 * 1.2
   });
 });
