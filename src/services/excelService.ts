@@ -77,8 +77,9 @@ export const exportBOQToExcel = async (
 
   worksheet.getCell('D5').value = 'EUR to SAR Rate:';
   worksheet.getCell('D5').style = metaStyle;
-  worksheet.getCell('E5').value = conversionRate;
+  worksheet.getCell('E5').value = Number(conversionRate) || 5;
   worksheet.getCell('E5').style = valStyle;
+  worksheet.getCell('E5').numFmt = '#,##0.00';
 
   worksheet.getCell('G5').value = 'Status:';
   worksheet.getCell('G5').style = metaStyle;
@@ -95,7 +96,7 @@ export const exportBOQToExcel = async (
   worksheet.getCell('E6').value = boq.checkedBy || '';
   worksheet.getCell('E6').style = valStyle;
 
-  // Table Column Headers at Row 9
+  // Table Column Headers at Row 10
   const headerTitle = boq.brand ? `${boq.brand.toUpperCase()} ITEM` : 'ITEM DESCRIPTION';
   const headers = [
     'S.No',
@@ -152,41 +153,41 @@ export const exportBOQToExcel = async (
 
     row.getCell(1).value = item.serialNumber || index + 1;
     row.getCell(2).value = item.description || '';
-    row.getCell(3).value = item.quantity ?? 0;
+    row.getCell(3).value = Number(item.quantity) || 0;
     row.getCell(4).value = item.pricingSource || 'Discounted Listed Price';
 
     // Unit Price EUR
-    row.getCell(5).value = item.unitPriceEUR ?? 0;
+    row.getCell(5).value = Number(item.unitPriceEUR) || 0;
 
     // Total EUR formula: =C{row}*E{row}
-    row.getCell(6).value = { formula: `C${rowIdx}*E${rowIdx}`, result: item.totalEUR };
+    row.getCell(6).value = { formula: `C${rowIdx}*E${rowIdx}`, result: Number(item.totalEUR) || 0 };
 
-    // Unit Price SAR formula or manual
+    // Unit Price SAR formula or manual (Reference E5 for Conversion Rate)
     if (item.isManualSAR) {
-      row.getCell(7).value = item.unitPriceSAR ?? 0;
+      row.getCell(7).value = Number(item.unitPriceSAR) || 0;
     } else {
-      // Formula = E{row} * H6 (Conversion rate reference)
-      row.getCell(7).value = { formula: `E${rowIdx}*$H$6`, result: item.unitPriceSAR };
+      // Formula = E{row} * $E$5 (Conversion rate cell at E5)
+      row.getCell(7).value = { formula: `E${rowIdx}*$E$5`, result: Number(item.unitPriceSAR) || 0 };
     }
 
     // Total SAR formula: =C{row}*G{row}
-    row.getCell(8).value = { formula: `C${rowIdx}*G${rowIdx}`, result: item.totalSAR };
+    row.getCell(8).value = { formula: `C${rowIdx}*G${rowIdx}`, result: Number(item.totalSAR) || 0 };
 
     // Profit %
-    if (item.profitPercentage !== null && item.profitPercentage !== undefined && !isNaN(item.profitPercentage)) {
-      row.getCell(9).value = item.profitPercentage / 100; // stored as fraction in Excel
+    if (item.profitPercentage !== null && item.profitPercentage !== undefined && !isNaN(Number(item.profitPercentage))) {
+      row.getCell(9).value = Number(item.profitPercentage) / 100; // stored as fraction in Excel
     } else {
       row.getCell(9).value = null;
     }
 
     // Percentage Added formula: =IF(ISNUMBER(I{row}), G{row}*I{row}, 0)
-    row.getCell(10).value = { formula: `IF(ISNUMBER(I${rowIdx}), G${rowIdx}*I${rowIdx}, 0)`, result: item.percentageAdded };
+    row.getCell(10).value = { formula: `IF(ISNUMBER(I${rowIdx}), G${rowIdx}*I${rowIdx}, 0)`, result: Number(item.percentageAdded) || 0 };
 
     // Unit Price Profit Incl formula: =G{rowIdx}+J{rowIdx}
-    row.getCell(11).value = { formula: `G${rowIdx}+J${rowIdx}`, result: item.unitPriceProfitIncl };
+    row.getCell(11).value = { formula: `G${rowIdx}+J${rowIdx}`, result: Number(item.unitPriceProfitIncl) || 0 };
 
     // Total Profit Incl formula: =C{rowIdx}*K{rowIdx}
-    row.getCell(12).value = { formula: `C${rowIdx}*K${rowIdx}`, result: item.totalProfitIncl };
+    row.getCell(12).value = { formula: `C${rowIdx}*K${rowIdx}`, result: Number(item.totalProfitIncl) || 0 };
 
     // Formatting
     const isEven = index % 2 === 0;
@@ -222,36 +223,38 @@ export const exportBOQToExcel = async (
   });
 
   // Totals Row
-  const endRowIdx = startRowIdx + items.length - 1;
-  const totalRowIdx = endRowIdx + 2; // Leave one blank row or direct
-  const totalRow = worksheet.getRow(totalRowIdx);
+  if (items.length > 0) {
+    const endRowIdx = startRowIdx + items.length - 1;
+    const totalRowIdx = endRowIdx + 2; // Leave one blank row or direct
+    const totalRow = worksheet.getRow(totalRowIdx);
 
-  totalRow.getCell(2).value = 'TOTAL';
-  totalRow.getCell(2).font = { name: 'Arial', size: 10, bold: true };
-  totalRow.getCell(2).alignment = { horizontal: 'right' };
+    totalRow.getCell(2).value = 'TOTAL';
+    totalRow.getCell(2).font = { name: 'Arial', size: 10, bold: true };
+    totalRow.getCell(2).alignment = { horizontal: 'right' };
 
-  totalRow.getCell(3).value = { formula: `SUM(C${startRowIdx}:C${endRowIdx})` };
-  totalRow.getCell(3).numFmt = '#,##0';
+    totalRow.getCell(3).value = { formula: `SUM(C${startRowIdx}:C${endRowIdx})`, result: items.reduce((s, i) => s + (Number(i.quantity) || 0), 0) };
+    totalRow.getCell(3).numFmt = '#,##0';
 
-  totalRow.getCell(6).value = { formula: `SUM(F${startRowIdx}:F${endRowIdx})` };
-  totalRow.getCell(6).numFmt = '#,##0.00';
+    totalRow.getCell(6).value = { formula: `SUM(F${startRowIdx}:F${endRowIdx})`, result: Number(boq.totalEUR) || 0 };
+    totalRow.getCell(6).numFmt = '#,##0.00';
 
-  totalRow.getCell(8).value = { formula: `SUM(H${startRowIdx}:H${endRowIdx})` };
-  totalRow.getCell(8).numFmt = '#,##0.00';
+    totalRow.getCell(8).value = { formula: `SUM(H${startRowIdx}:H${endRowIdx})`, result: Number(boq.totalSAR) || 0 };
+    totalRow.getCell(8).numFmt = '#,##0.00';
 
-  totalRow.getCell(12).value = { formula: `SUM(L${startRowIdx}:L${endRowIdx})` };
-  totalRow.getCell(12).numFmt = '#,##0.00';
+    totalRow.getCell(12).value = { formula: `SUM(L${startRowIdx}:L${endRowIdx})`, result: Number(boq.totalFinalValue) || 0 };
+    totalRow.getCell(12).numFmt = '#,##0.00';
 
-  for (let c = 1; c <= 12; c++) {
-    const cell = totalRow.getCell(c);
-    cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF1E3A8A' } };
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } }; // Soft Amber accent
-    cell.border = {
-      top: { style: 'medium', color: { argb: 'FFD97706' } },
-      bottom: { style: 'double', color: { argb: 'FFD97706' } },
-      left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-      right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
-    };
+    for (let c = 1; c <= 12; c++) {
+      const cell = totalRow.getCell(c);
+      cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF1E3A8A' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } }; // Soft Amber accent
+      cell.border = {
+        top: { style: 'medium', color: { argb: 'FFD97706' } },
+        bottom: { style: 'double', color: { argb: 'FFD97706' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+      };
+    }
   }
 
   // Column Widths
