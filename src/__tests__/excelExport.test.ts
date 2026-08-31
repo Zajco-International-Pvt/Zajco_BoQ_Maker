@@ -102,14 +102,14 @@ describe('Excel Export Service Tests', () => {
     expect((pctAddedCell?.value as any)?.formula).toBe('IF(ISNUMBER(I11), G11*I11, 0)');
     expect((pctAddedCell?.value as any)?.result).toBe(100);
 
-    // Unit Price Profit Incl formula: G11+J11
+    // Unit Price Profit Incl formula: ROUND(G11+J11,2)
     const unitProfitCell = row11?.getCell(11);
-    expect((unitProfitCell?.value as any)?.formula).toBe('G11+J11');
+    expect((unitProfitCell?.value as any)?.formula).toBe('ROUND(G11+J11,2)');
     expect((unitProfitCell?.value as any)?.result).toBe(600);
 
-    // Total Profit Incl formula: C11*K11
+    // Total Profit Incl formula: ROUND(C11*K11,2)
     const totalProfitCell = row11?.getCell(12);
-    expect((totalProfitCell?.value as any)?.formula).toBe('C11*K11');
+    expect((totalProfitCell?.value as any)?.formula).toBe('ROUND(C11*K11,2)');
     expect((totalProfitCell?.value as any)?.result).toBe(1200);
 
     // Check Row 12 (Item 2: Manual SAR item)
@@ -124,5 +124,56 @@ describe('Excel Export Service Tests', () => {
     expect((totalRow?.getCell(6).value as any)?.formula).toBe('SUM(F11:F12)');
     expect((totalRow?.getCell(8).value as any)?.formula).toBe('SUM(H11:H12)');
     expect((totalRow?.getCell(12).value as any)?.formula).toBe('SUM(L11:L12)');
+  });
+
+  it('should export BOQ with section header rows seamlessly', async () => {
+    const headerItem = calculateBOQItemRow({
+      description: '1.0 MAIN CONTROL EQUIPMENT',
+      isHeader: true
+    }, 5);
+
+    const normalItem = calculateBOQItemRow({
+      serialNumber: 1,
+      description: 'Nurse Station Terminal',
+      quantity: 5,
+      unitPriceEUR: 200,
+      profitPercentage: 20
+    }, 5);
+
+    const items: BOQItem[] = [headerItem, normalItem];
+    const totals = recalculateBOQTotals(items);
+
+    const testBOQ: BOQ = {
+      id: 'boq-header-test',
+      boqNumber: 'BOQ-HDR-001',
+      projectName: 'Hospital Wing',
+      system: 'Nurse Call',
+      brand: 'Tunstall',
+      preparedBy: 'Engineer',
+      checkedBy: 'Supervisor',
+      date: '2026-08-31',
+      revision: 0,
+      status: 'DRAFT',
+      currency: 'SAR',
+      conversionRate: 5,
+      ...totals,
+      items,
+      createdBy: 'user1',
+      createdAt: '2026-08-31T10:00:00Z',
+      updatedAt: '2026-08-31T10:00:00Z'
+    };
+
+    const { blob } = await exportBOQToExcel(testBOQ);
+    const arrayBuffer = await blob.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+
+    const worksheet = workbook.getWorksheet('BOQ');
+    const headerRow = worksheet?.getRow(11);
+    expect(headerRow?.getCell(1).value).toBe('1.0 MAIN CONTROL EQUIPMENT');
+
+    const normalRow = worksheet?.getRow(12);
+    expect(normalRow?.getCell(1).value).toBe(1);
+    expect(normalRow?.getCell(3).value).toBe(5);
   });
 });

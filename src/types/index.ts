@@ -36,6 +36,7 @@ export interface BOQItem {
   unitPriceProfitIncl: number;
   totalProfitIncl: number;
   isManualSAR?: boolean; // If true, EUR conversion doesn't overwrite unitPriceSAR
+  isHeader?: boolean; // If true, row acts as a section header/category title
   brand?: string;
   model?: string;
   system?: string;

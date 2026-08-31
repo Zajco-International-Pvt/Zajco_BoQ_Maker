@@ -7,6 +7,32 @@ import { logAuditEvent } from './auditService';
 
 // Helper for exact calculations per row
 export const calculateBOQItemRow = (item: Partial<BOQItem>, conversionRate: number = 5): BOQItem => {
+  const isHeader = !!item.isHeader;
+
+  if (isHeader) {
+    return {
+      id: item.id || `item_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      serialNumber: 0,
+      description: item.description || '',
+      quantity: 0,
+      pricingSource: '',
+      unitPriceEUR: 0,
+      totalEUR: 0,
+      unitPriceSAR: 0,
+      totalSAR: 0,
+      profitPercentage: null,
+      percentageAdded: 0,
+      unitPriceProfitIncl: 0,
+      totalProfitIncl: 0,
+      isHeader: true,
+      isManualSAR: false,
+      brand: item.brand || '',
+      model: item.model || '',
+      system: item.system || '',
+      notes: item.notes || ''
+    };
+  }
+
   const quantity = Math.max(0, Number(item.quantity) || 0);
   const unitPriceEUR = Math.max(0, Number(item.unitPriceEUR) || 0);
   const isManualSAR = !!item.isManualSAR;
@@ -46,6 +72,7 @@ export const calculateBOQItemRow = (item: Partial<BOQItem>, conversionRate: numb
     unitPriceProfitIncl,
     totalProfitIncl,
     isManualSAR,
+    isHeader: false,
     brand: item.brand || '',
     model: item.model || '',
     system: item.system || '',

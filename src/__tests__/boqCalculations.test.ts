@@ -80,6 +80,32 @@ describe('BOQ Calculations Engine Tests', () => {
     expect(totals.totalFinalValue).toBe(2300); // 1200 + 1100
   });
 
+  it('should support Section Header rows with 0 values without breaking totals', () => {
+    const headerRow = calculateBOQItemRow({
+      description: 'SECTION 1: CONTROL EQUIPMENT',
+      isHeader: true
+    }, 5);
+
+    expect(headerRow.isHeader).toBe(true);
+    expect(headerRow.quantity).toBe(0);
+    expect(headerRow.unitPriceEUR).toBe(0);
+    expect(headerRow.totalEUR).toBe(0);
+    expect(headerRow.unitPriceSAR).toBe(0);
+    expect(headerRow.totalSAR).toBe(0);
+    expect(headerRow.totalProfitIncl).toBe(0);
+
+    const normalItem = calculateBOQItemRow({
+      quantity: 2,
+      unitPriceEUR: 100,
+      profitPercentage: 20
+    }, 5);
+
+    const totals = recalculateBOQTotals([headerRow, normalItem]);
+    expect(totals.totalEUR).toBe(200);
+    expect(totals.totalSAR).toBe(1000);
+    expect(totals.totalFinalValue).toBe(1200);
+  });
+
   it('should generate valid auto BOQ number format', () => {
     const boqNum = generateBOQNumber(42, 'BOQ-ZJO');
     expect(boqNum).toMatch(/^BOQ-ZJO-\d{2}-\d{2}-\d{2}-042$/);

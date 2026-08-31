@@ -63,20 +63,28 @@ export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
     'Total Profit Incl'
   ];
 
-  const rows = (boq.items || []).map((item, idx) => [
-    item.serialNumber || idx + 1,
-    item.description || '',
-    item.quantity ?? 0,
-    item.pricingSource || '',
-    (item.unitPriceEUR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    (item.totalEUR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    (item.unitPriceSAR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    (item.totalSAR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    item.profitPercentage !== null && item.profitPercentage !== undefined ? `${item.profitPercentage}%` : '-',
-    (item.percentageAdded ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    (item.unitPriceProfitIncl ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    (item.totalProfitIncl ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  ]);
+  const rows = (boq.items || []).map((item, idx) => {
+    if (item.isHeader) {
+      return [
+        (item.description || 'SECTION HEADER').toUpperCase(),
+        '', '', '', '', '', '', '', '', '', '', ''
+      ];
+    }
+    return [
+      item.serialNumber || idx + 1,
+      item.description || '',
+      item.quantity ?? 0,
+      item.pricingSource || '',
+      (item.unitPriceEUR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      (item.totalEUR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      (item.unitPriceSAR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      (item.totalSAR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      item.profitPercentage !== null && item.profitPercentage !== undefined ? `${item.profitPercentage}%` : '-',
+      (item.percentageAdded ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      (item.unitPriceProfitIncl ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      (item.totalProfitIncl ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ];
+  });
 
   // Totals Row
   rows.push([
@@ -125,10 +133,21 @@ export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
       11: { halign: 'right', cellWidth: 24 }
     },
     didParseCell: (data) => {
-      if (data.row.index === rows.length - 1) {
+      const isTotalRow = data.row.index === rows.length - 1;
+      const itemIndex = data.row.index;
+      const isHeaderRow = boq.items?.[itemIndex]?.isHeader;
+
+      if (isTotalRow) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.fillColor = [254, 243, 199];
         data.cell.styles.textColor = [180, 83, 9];
+      } else if (isHeaderRow) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = [30, 41, 59];
+        data.cell.styles.textColor = [255, 255, 255];
+        if (data.column.index === 0) {
+          data.cell.colSpan = 12;
+        }
       }
     }
   });

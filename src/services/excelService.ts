@@ -137,6 +137,32 @@ export const exportBOQToExcel = async (
     const rowIdx = startRowIdx + index;
     const row = worksheet.getRow(rowIdx);
 
+    // If Section Header Row
+    if (item.isHeader) {
+      row.getCell(1).value = (item.description || 'SECTION HEADER').toUpperCase();
+
+      for (let c = 2; c <= 12; c++) {
+        row.getCell(c).value = null;
+      }
+
+      worksheet.mergeCells(`A${rowIdx}:L${rowIdx}`);
+      row.height = 24;
+
+      for (let c = 1; c <= 12; c++) {
+        const cell = row.getCell(c);
+        cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+        cell.border = {
+          top: { style: 'medium', color: { argb: 'FF0F172A' } },
+          bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+          left: { style: 'thin', color: { argb: 'FF334155' } },
+          right: { style: 'thin', color: { argb: 'FF334155' } }
+        };
+        cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      }
+      return;
+    }
+
     // Columns:
     // A: S.No (1)
     // B: Description (2)
@@ -184,10 +210,10 @@ export const exportBOQToExcel = async (
     row.getCell(10).value = { formula: `IF(ISNUMBER(I${rowIdx}), G${rowIdx}*I${rowIdx}, 0)`, result: Number(item.percentageAdded) || 0 };
 
     // Unit Price Profit Incl formula: =G{rowIdx}+J{rowIdx}
-    row.getCell(11).value = { formula: `G${rowIdx}+J${rowIdx}`, result: Number(item.unitPriceProfitIncl) || 0 };
+    row.getCell(11).value = { formula: `ROUND(G${rowIdx}+J${rowIdx},2)`, result: Number(item.unitPriceProfitIncl) || 0 };
 
     // Total Profit Incl formula: =C{rowIdx}*K{rowIdx}
-    row.getCell(12).value = { formula: `C${rowIdx}*K${rowIdx}`, result: Number(item.totalProfitIncl) || 0 };
+    row.getCell(12).value = { formula: `ROUND(C${rowIdx}*K${rowIdx},2)`, result: Number(item.totalProfitIncl) || 0 };
 
     // Formatting
     const isEven = index % 2 === 0;

@@ -6,7 +6,9 @@ import {
   MoveUp,
   MoveDown,
   Search,
-  ClipboardPaste
+  ClipboardPaste,
+  Heading,
+  Type
 } from 'lucide-react';
 import type { BOQItem, ItemLibraryProduct } from '../../types';
 import { calculateBOQItemRow } from '../../services/boqService';
@@ -34,6 +36,17 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
   const [pasteModalOpen, setPasteModalOpen] = useState(false);
   const [pasteRawText, setPasteRawText] = useState('');
 
+  // Helper to renumber only line items sequentially (1, 2, 3...) and keep headers with 0
+  const renumberItems = (list: BOQItem[]): BOQItem[] => {
+    let counter = 1;
+    return list.map(it => {
+      if (it.isHeader) {
+        return { ...it, serialNumber: 0 };
+      }
+      return { ...it, serialNumber: counter++ };
+    });
+  };
+
   // Handle cell field change
   const handleCellChange = (index: number, field: keyof BOQItem, value: any) => {
     if (readOnly) return;
@@ -44,35 +57,69 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
     const recalculated = calculateBOQItemRow(item, conversionRate);
     updated[index] = recalculated;
 
-    // Ensure serial numbers stay 1...N
-    const renumbered = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
-    onChangeItems(renumbered);
+    onChangeItems(renumberItems(updated));
   };
 
   // Add new blank row
   const handleAddRow = () => {
     if (readOnly) return;
     const newRowRaw: Partial<BOQItem> = {
-      serialNumber: items.length + 1,
       description: '',
       quantity: 1,
       pricingSource: pricingSources[0] || 'Discounted Listed Price',
       unitPriceEUR: 0,
       unitPriceSAR: 0,
       profitPercentage: 15,
-      isManualSAR: false
+      isManualSAR: false,
+      isHeader: false
     };
     const calculated = calculateBOQItemRow(newRowRaw, conversionRate);
-    const newItems = [...items, calculated].map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+    const newItems = renumberItems([...items, calculated]);
     onChangeItems(newItems);
+  };
+
+  // Add new header / section row
+  const handleAddHeaderRow = (insertAtIdx?: number) => {
+    if (readOnly) return;
+    const newHeaderRaw: Partial<BOQItem> = {
+      description: 'SECTION HEADER TITLE',
+      isHeader: true,
+      quantity: 0,
+      unitPriceEUR: 0,
+      unitPriceSAR: 0
+    };
+    const calculated = calculateBOQItemRow(newHeaderRaw, conversionRate);
+    const updated = [...items];
+    if (typeof insertAtIdx === 'number') {
+      updated.splice(insertAtIdx, 0, calculated);
+    } else {
+      updated.push(calculated);
+    }
+    const newItems = renumberItems(updated);
+    onChangeItems(newItems);
+  };
+
+  // Toggle between Header Row and Normal Line Item Row
+  const handleToggleHeader = (index: number) => {
+    if (readOnly) return;
+    const target = items[index];
+    const isNowHeader = !target.isHeader;
+    const updated = [...items];
+    updated[index] = calculateBOQItemRow({
+      ...target,
+      isHeader: isNowHeader,
+      quantity: isNowHeader ? 0 : (target.quantity || 1),
+      unitPriceEUR: isNowHeader ? 0 : target.unitPriceEUR,
+      profitPercentage: isNowHeader ? null : (target.profitPercentage ?? 15)
+    }, conversionRate);
+    onChangeItems(renumberItems(updated));
   };
 
   // Delete row
   const handleDeleteRow = (index: number) => {
     if (readOnly || items.length <= 1) return;
     const filtered = items.filter((_, idx) => idx !== index);
-    const renumbered = filtered.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
-    onChangeItems(renumbered);
+    onChangeItems(renumberItems(filtered));
   };
 
   // Duplicate row
@@ -81,13 +128,11 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
     const target = items[index];
     const dup: BOQItem = {
       ...target,
-      id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-      serialNumber: index + 2
+      id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
     };
     const updated = [...items];
     updated.splice(index + 1, 0, dup);
-    const renumbered = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
-    onChangeItems(renumbered);
+    onChangeItems(renumberItems(updated));
   };
 
   // Move row up/down
@@ -101,8 +146,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
     const [moved] = updated.splice(index, 1);
     updated.splice(targetIdx, 0, moved);
 
-    const renumbered = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
-    onChangeItems(renumbered);
+    onChangeItems(renumberItems(updated));
   };
 
   // Bulk Excel Paste Handler
@@ -135,7 +179,6 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
       }
 
       const itemRaw: Partial<BOQItem> = {
-        serialNumber: items.length + parsedRows.length + 1,
         description: desc || `Imported Item ${idx + 1}`,
         quantity: isNaN(qty) ? 1 : qty,
         pricingSource: source,
@@ -147,7 +190,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
     });
 
     if (parsedRows.length > 0) {
-      const combined = [...items, ...parsedRows].map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+      const combined = renumberItems([...items, ...parsedRows]);
       onChangeItems(combined);
       setPasteRawText('');
       setPasteModalOpen(false);
@@ -238,6 +281,15 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
             </button>
 
             <button
+              type="button"
+              onClick={() => handleAddHeaderRow()}
+              className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 hover:text-indigo-200 text-xs font-bold rounded-lg border border-indigo-500/40 shadow-sm transition-all"
+            >
+              <Heading className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Add Header Row</span>
+            </button>
+
+            <button
               onClick={handleAddRow}
               className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-md shadow-blue-600/20 transition-all"
             >
@@ -289,6 +341,95 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                 .filter(item => !searchTerm || item.description.toLowerCase().includes(searchTerm.toLowerCase()))
                 .map((item, idx) => {
                   const isEven = idx % 2 === 0;
+
+                  // Render Section Header Row
+                  if (item.isHeader) {
+                    return (
+                      <tr
+                        key={item.id}
+                        className="bg-slate-950/90 hover:bg-slate-900/90 border-y-2 border-indigo-500/40 divide-x divide-slate-800/60 transition-colors"
+                      >
+                        {/* S.No - Empty for Header Row */}
+                        <td className="p-2 text-center sticky left-0 bg-slate-950 z-10">
+                          <span className="text-slate-600 font-mono text-xs select-none">—</span>
+                        </td>
+
+                        {/* Spanned Header Title */}
+                        <td colSpan={10} className="p-2 sticky left-12 bg-slate-950/90 z-10">
+                          <div className="flex items-center space-x-2.5">
+                            <div className="flex items-center space-x-1 px-2 py-0.5 rounded bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 text-[10px] font-extrabold uppercase tracking-wider flex-shrink-0 select-none">
+                              <Heading className="w-3 h-3 text-indigo-400" />
+                              <span>SECTION HEADER</span>
+                            </div>
+                            {readOnly ? (
+                              <div className="text-xs sm:text-sm font-extrabold text-white tracking-wide uppercase">
+                                {item.description}
+                              </div>
+                            ) : (
+                              <input
+                                type="text"
+                                value={item.description}
+                                onChange={(e) => handleCellChange(idx, 'description', e.target.value)}
+                                placeholder="Enter Section Header / Category Name (e.g. 1.0 MAIN CONTROL EQUIPMENT)..."
+                                className="w-full bg-slate-900 border border-indigo-500/40 rounded px-2.5 py-1.5 text-xs sm:text-sm font-bold text-white tracking-wide placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                              />
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        {!readOnly && (
+                          <td className="p-1.5 text-center bg-slate-950">
+                            <div className="flex items-center justify-center space-x-1">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleHeader(idx)}
+                                title="Convert to normal line item"
+                                className="p-1 text-indigo-400 hover:text-white hover:bg-indigo-500/20 rounded transition-colors"
+                              >
+                                <Type className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDuplicateRow(idx)}
+                                title="Duplicate header"
+                                className="p-1 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveRow(idx, 'up')}
+                                disabled={idx === 0}
+                                title="Move row up"
+                                className="p-1 text-slate-400 hover:text-slate-200 disabled:opacity-30 transition-colors"
+                              >
+                                <MoveUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveRow(idx, 'down')}
+                                disabled={idx === items.length - 1}
+                                title="Move row down"
+                                className="p-1 text-slate-400 hover:text-slate-200 disabled:opacity-30 transition-colors"
+                              >
+                                <MoveDown className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteRow(idx)}
+                                disabled={items.length <= 1}
+                                title="Delete header row"
+                                className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded disabled:opacity-30 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  }
 
                   return (
                     <tr
@@ -476,6 +617,14 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                       {!readOnly && (
                         <td className="p-1.5 text-center">
                           <div className="flex items-center justify-center space-x-1">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleHeader(idx)}
+                              title="Convert to section header"
+                              className="p-1 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded transition-colors"
+                            >
+                              <Heading className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleDuplicateRow(idx)}
