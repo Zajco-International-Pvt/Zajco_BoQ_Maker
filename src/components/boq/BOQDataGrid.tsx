@@ -383,7 +383,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                 </th>
                 <th className="p-2.5 text-right w-36 bg-slate-900/60">Total SAR</th>
                 <th className="p-2.5 text-right w-28">Profit %</th>
-                <th className="p-2.5 text-right w-32">Percentage Added</th>
+                <th className="p-2.5 text-right w-32">Percentage Amount</th>
                 <th className="p-2.5 text-right w-36">Unit Price (Profit Incl)</th>
                 <th className="p-2.5 text-right w-40 bg-emerald-950/30 text-emerald-300">Total Profit Incl</th>
                 {!readOnly && <th className="p-2.5 text-center w-24">Actions</th>}
@@ -654,7 +654,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                               const val = e.target.value;
                               handleCellChange(idx, 'profitPercentage', val === '' ? null : parseFloat(val));
                             }}
-                            className="w-full text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-blue-400 font-mono font-bold focus:outline-none focus:border-blue-500"
+                            className="w-full min-w-[55px] text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-blue-400 font-mono font-bold focus:outline-none focus:border-blue-500"
                           />
                         )}
                       </td>
@@ -682,11 +682,10 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                               type="button"
                               onClick={() => handleToggleInstallation(idx)}
                               title={isInstallationItem(item) ? "Marked as Installation/Service (Click to toggle)" : "Mark as Installation / Service"}
-                              className={`p-1 rounded transition-colors ${
-                                isInstallationItem(item)
-                                  ? 'text-amber-300 bg-amber-500/20 hover:bg-amber-500/30'
-                                  : 'text-slate-400 hover:text-amber-400 hover:bg-amber-500/10'
-                              }`}
+                              className={`p-1 rounded transition-colors ${isInstallationItem(item)
+                                ? 'text-amber-300 bg-amber-500/20 hover:bg-amber-500/30'
+                                : 'text-slate-400 hover:text-amber-400 hover:bg-amber-500/10'
+                                }`}
                             >
                               <Wrench className="w-3.5 h-3.5" />
                             </button>
