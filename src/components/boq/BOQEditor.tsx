@@ -12,11 +12,12 @@ import {
   Loader2,
   Download,
   RefreshCw,
-  Calculator
+  Calculator,
+  Copy
 } from 'lucide-react';
 import type { BOQ, BOQItem, BOQStatus, ItemLibraryProduct, SystemSettings } from '../../types';
 import { BOQDataGrid } from './BOQDataGrid';
-import { createBOQ, updateBOQ, generateBOQNumber, recalculateBOQTotals, createRevisionBOQ, calculateBOQItemRow } from '../../services/boqService';
+import { createBOQ, updateBOQ, duplicateBOQ, generateBOQNumber, recalculateBOQTotals, createRevisionBOQ, calculateBOQItemRow } from '../../services/boqService';
 import { exportBOQToExcel, triggerExcelDownload } from '../../services/excelService';
 import { exportBOQToPDF } from '../../services/pdfService';
 import { useAuth } from '../../context/AuthContext';
@@ -317,6 +318,50 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     }
   };
 
+  const handleDuplicateBOQ = async () => {
+    try {
+      setActionLoading(true);
+      const effectiveUserId = userProfile?.uid || currentUser?.uid || initialBOQ?.createdBy || '';
+      const effectiveUserName = userProfile?.name || currentUser?.displayName || initialBOQ?.createdByName || 'User';
+      const effectiveUserEmail = userProfile?.email || currentUser?.email || initialBOQ?.createdByEmail || '';
+
+      const currentBOQ: BOQ = {
+        id: boqId || 'temp',
+        boqNumber: boqNumber.trim(),
+        projectName: projectName.trim() || initialBOQ?.projectName || '',
+        client: client.trim() || initialBOQ?.client || '',
+        contractor: initialBOQ?.contractor || '',
+        consultant: initialBOQ?.consultant || '',
+        location: initialBOQ?.location || '',
+        system,
+        brand,
+        preparedBy,
+        checkedBy,
+        date,
+        revision,
+        status,
+        currency: 'SAR',
+        conversionRate,
+        ...recalculateBOQTotals(items),
+        items,
+        createdBy: initialBOQ?.createdBy || effectiveUserId,
+        createdByName: initialBOQ?.createdByName || effectiveUserName,
+        createdByEmail: initialBOQ?.createdByEmail || effectiveUserEmail,
+        createdAt: initialBOQ?.createdAt || createdAt,
+        updatedAt: new Date().toISOString(),
+        notes
+      };
+
+      const newId = await duplicateBOQ(currentBOQ, effectiveUserId, effectiveUserName, effectiveUserEmail);
+      setNotice({ type: 'success', message: 'BOQ successfully duplicated into a new draft!' });
+      if (onSaved) onSaved(newId);
+    } catch (err: any) {
+      setNotice({ type: 'error', message: 'Failed to duplicate BOQ: ' + err.message });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const totals = recalculateBOQTotals(items);
   const totalBaseCost = totals.totalSAR;
   const totalProfitSAR = totals.totalProfit;
@@ -443,6 +488,18 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
             <RefreshCw className="w-4 h-4 text-amber-400" />
             <span className="hidden sm:inline">Revision</span>
           </button>
+
+          {boqId && (
+            <button
+              onClick={handleDuplicateBOQ}
+              disabled={actionLoading}
+              className="flex items-center space-x-1 px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold transition-colors disabled:opacity-40"
+              title="Duplicate into a new BOQ draft"
+            >
+              <Copy className="w-4 h-4 text-indigo-400" />
+              <span className="hidden sm:inline">Duplicate</span>
+            </button>
+          )}
 
           <button
             onClick={() => { setTemplateName(boqNumber ? `${boqNumber} Template` : 'BOQ Template'); setTemplateModalOpen(true); }}

@@ -6,6 +6,7 @@ import {
   Eye, 
   Edit3, 
   CheckCircle, 
+  AlertCircle,
   XCircle, 
   Download, 
   Copy, 
@@ -39,10 +40,12 @@ export const BOQsList: React.FC<BOQsListProps> = ({
   onCreateNew,
   onRefresh
 }) => {
-  const { userProfile, isAdmin } = useAuth();
+  const { currentUser, userProfile, isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [systemFilter, setSystemFilter] = useState<string>('ALL');
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Filtered BOQs
   const filteredBOQs = boqs.filter(b => {
@@ -62,21 +65,55 @@ export const BOQsList: React.FC<BOQsListProps> = ({
 
   // Handle Approve / Reject
   const handleStatusChange = async (boq: BOQ, newStatus: BOQStatus) => {
+    if (actionLoadingId) return;
+    setActionLoadingId(`status_${boq.id}_${newStatus}`);
+    setNotice(null);
     try {
-      await updateBOQStatus(boq.id, newStatus, userProfile?.uid || '', userProfile?.name || '', userProfile?.email || '');
-      onRefresh();
-    } catch (err) {
-      console.error(err);
+      const currentUid = userProfile?.uid || currentUser?.uid || '';
+      const currentName = userProfile?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User';
+      const currentEmail = userProfile?.email || currentUser?.email || '';
+
+      await updateBOQStatus(boq.id, newStatus, currentUid, currentName, currentEmail);
+      setNotice({
+        type: 'success',
+        message: `BOQ ${boq.boqNumber} status updated to ${newStatus}.`
+      });
+      await onRefresh();
+    } catch (err: any) {
+      console.error('Status update error:', err);
+      setNotice({
+        type: 'error',
+        message: `Failed to update status: ${err?.message || 'Unknown database error'}`
+      });
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
   // Handle Duplicate
   const handleDuplicate = async (boq: BOQ) => {
+    if (actionLoadingId) return;
+    setActionLoadingId(`duplicate_${boq.id}`);
+    setNotice(null);
     try {
-      await duplicateBOQ(boq, userProfile?.uid || '', userProfile?.name || '', userProfile?.email || '');
-      onRefresh();
-    } catch (err) {
-      console.error(err);
+      const currentUid = userProfile?.uid || currentUser?.uid || '';
+      const currentName = userProfile?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User';
+      const currentEmail = userProfile?.email || currentUser?.email || '';
+
+      await duplicateBOQ(boq, currentUid, currentName, currentEmail);
+      setNotice({
+        type: 'success',
+        message: `Successfully duplicated "${boq.projectName || boq.boqNumber}" as a new draft!`
+      });
+      await onRefresh();
+    } catch (err: any) {
+      console.error('Failed to duplicate BOQ:', err);
+      setNotice({
+        type: 'error',
+        message: `Failed to duplicate BOQ: ${err?.message || 'Unknown database error'}`
+      });
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -98,16 +135,57 @@ export const BOQsList: React.FC<BOQsListProps> = ({
   // Handle Delete
   const handleDelete = async (boq: BOQ) => {
     if (!window.confirm(`Are you sure you want to delete BOQ ${boq.boqNumber}?`)) return;
+    if (actionLoadingId) return;
+    setActionLoadingId(`delete_${boq.id}`);
+    setNotice(null);
     try {
-      await deleteBOQ(boq.id, userProfile?.uid || '', userProfile?.name || '', userProfile?.email || '');
-      onRefresh();
-    } catch (err) {
-      console.error(err);
+      const currentUid = userProfile?.uid || currentUser?.uid || '';
+      const currentName = userProfile?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User';
+      const currentEmail = userProfile?.email || currentUser?.email || '';
+
+      await deleteBOQ(boq.id, currentUid, currentName, currentEmail);
+      setNotice({
+        type: 'success',
+        message: `BOQ ${boq.boqNumber} deleted successfully.`
+      });
+      await onRefresh();
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      setNotice({
+        type: 'error',
+        message: `Failed to delete BOQ: ${err?.message || 'Unknown database error'}`
+      });
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
   return (
     <div className="space-y-6">
+
+      {/* Action Notice / Feedback Banner */}
+      {notice && (
+        <div className={`p-3.5 sm:p-4 rounded-xl border flex items-center justify-between gap-3 ${
+          notice.type === 'success' 
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
+            : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+        }`}>
+          <div className="flex items-center space-x-2 text-xs sm:text-sm">
+            {notice.type === 'success' ? (
+              <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0" />
+            )}
+            <span className="break-words">{notice.message}</span>
+          </div>
+          <button 
+            onClick={() => setNotice(null)} 
+            className="text-xs underline font-semibold flex-shrink-0 hover:opacity-80 transition-opacity"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl">
@@ -301,19 +379,37 @@ export const BOQsList: React.FC<BOQsListProps> = ({
 
                           <button
                             onClick={() => handleDuplicate(boq)}
+                            disabled={actionLoadingId === `duplicate_${boq.id}`}
                             title="Duplicate BOQ"
-                            className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              actionLoadingId === `duplicate_${boq.id}`
+                                ? 'text-indigo-400 bg-indigo-500/20 cursor-wait'
+                                : 'text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10'
+                            }`}
                           >
-                            <Copy className="w-4 h-4" />
+                            {actionLoadingId === `duplicate_${boq.id}` ? (
+                              <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
                           </button>
 
                           {isAdmin && (
                             <button
                               onClick={() => handleDelete(boq)}
+                              disabled={actionLoadingId === `delete_${boq.id}`}
                               title="Delete BOQ"
-                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                actionLoadingId === `delete_${boq.id}`
+                                  ? 'text-rose-400 bg-rose-500/20 cursor-wait'
+                                  : 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/10'
+                              }`}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {actionLoadingId === `delete_${boq.id}` ? (
+                                <RefreshCw className="w-4 h-4 animate-spin text-rose-400" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
                             </button>
                           )}
                         </div>

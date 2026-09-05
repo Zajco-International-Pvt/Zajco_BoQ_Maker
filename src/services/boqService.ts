@@ -161,6 +161,27 @@ export const generateBOQNumber = (seqIndex = 1, prefix = 'BOQ-ZJO'): string => {
   return `${prefix}-${yy}-${mm}-${dd}-${seq}`;
 };
 
+export const sanitizeForFirestore = <T>(data: T): T => {
+  if (data === undefined) {
+    return null as any;
+  }
+  if (data === null || typeof data !== 'object') {
+    return data;
+  }
+  if (Array.isArray(data)) {
+    return data
+      .filter((item) => item !== undefined)
+      .map((item) => sanitizeForFirestore(item)) as any;
+  }
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      clean[key] = sanitizeForFirestore(value);
+    }
+  }
+  return clean as T;
+};
+
 export const createBOQ = async (boqData: Omit<BOQ, 'id'>, userId: string, userName: string, userEmail: string): Promise<string> => {
   const boqsRef = collection(db, 'boqs');
   const newDocRef = doc(boqsRef);
@@ -183,7 +204,8 @@ export const createBOQ = async (boqData: Omit<BOQ, 'id'>, userId: string, userNa
     updatedAt: new Date().toISOString()
   };
 
-  await setDoc(newDocRef, newBOQ);
+  const sanitized = sanitizeForFirestore(newBOQ);
+  await setDoc(newDocRef, sanitized);
   await logAuditEvent(effectiveUserId, effectiveUserName, effectiveUserEmail, 'CREATE_BOQ', `Created BOQ ${newBOQ.boqNumber}`, newBOQ.id, newBOQ.boqNumber);
 
   return newDocRef.id;
@@ -198,7 +220,13 @@ export const updateBOQ = async (boqId: string, updates: Partial<BOQ>, userId: st
   }
 
   // Prevent accidental modification/overwriting of original creator metadata and creation date
-  const { createdBy, createdByName, createdByEmail, createdAt, ...restUpdates } = updates;
+  const { 
+    createdBy: _createdBy, 
+    createdByName: _createdByName, 
+    createdByEmail: _createdByEmail, 
+    createdAt: _createdAt, 
+    ...restUpdates 
+  } = updates;
 
   const payload = {
     ...restUpdates,
@@ -206,7 +234,8 @@ export const updateBOQ = async (boqId: string, updates: Partial<BOQ>, userId: st
     updatedAt: new Date().toISOString()
   };
 
-  await updateDoc(boqRef, payload);
+  const sanitized = sanitizeForFirestore(payload);
+  await updateDoc(boqRef, sanitized);
   const effectiveUserId = userId || auth.currentUser?.uid || '';
   const effectiveUserName = userName || auth.currentUser?.displayName || 'User';
   const effectiveUserEmail = userEmail || auth.currentUser?.email || '';
@@ -275,27 +304,68 @@ export const updateBOQStatus = async (
   await logAuditEvent(userId, userName, userEmail, `STATUS_${status}`, `Status changed to ${status}`, boqId);
 };
 
-export const duplicateBOQ = async (sourceBOQ: BOQ, userId: string, userName: string, userEmail: string): Promise<string> => {
-  const newNumber = generateBOQNumber(Math.floor(Math.random() * 800) + 100);
+export const duplicateBOQ = async (
+  sourceBOQ: BOQ, 
+  userId?: string, 
+  userName?: string, 
+  userEmail?: string
+): Promise<string> => {
+  const currentUserId = userId || auth.currentUser?.uid || '';
+  const currentUserName = userName || auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'User';
+  const currentUserEmail = userEmail || auth.currentUser?.email || '';
+
+  if (!currentUserId) {
+    throw new Error('Authentication required: Cannot duplicate BOQ without active user session.');
+  }
+
+  const newNumber = generateBOQNumber(Math.floor(Math.random() * 900) + 100);
+  const sourceName = (sourceBOQ.projectName || 'BOQ').trim();
+
+  // Create deep copy of items with fresh, unique row IDs
+  const duplicatedItems: BOQItem[] = (sourceBOQ.items || []).map((item, idx) => ({
+    ...item,
+    id: `item_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 7)}`
+  }));
+
+  // Cleanly omit previous doc ID, previous export files, and previous approval metadata
+  const {
+    id: _prevId,
+    excelFileUrl: _prevExcel,
+    pdfFileUrl: _prevPdf,
+    approvedBy: _prevApprovedBy,
+    approvedAt: _prevApprovedAt,
+    approvalNotes: _prevApprovalNotes,
+    ...restOfSource
+  } = sourceBOQ;
+
   const newBOQData: Omit<BOQ, 'id'> = {
-    ...sourceBOQ,
+    ...restOfSource,
     boqNumber: newNumber,
-    projectName: `${sourceBOQ.projectName} (Copy)`,
+    projectName: `${sourceName} (Copy)`,
     revision: 0,
     revisionHistory: [],
     status: 'DRAFT',
-    preparedBy: userName,
+    preparedBy: currentUserName,
     date: new Date().toISOString().split('T')[0],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    createdBy: userId,
-    createdByName: userName,
-    createdByEmail: userEmail,
-    excelFileUrl: undefined,
-    pdfFileUrl: undefined
+    createdBy: currentUserId,
+    createdByName: currentUserName,
+    createdByEmail: currentUserEmail,
+    items: duplicatedItems,
+    currency: sourceBOQ.currency || 'SAR',
+    conversionRate: sourceBOQ.conversionRate || 5,
+    checkedBy: sourceBOQ.checkedBy || '',
+    system: sourceBOQ.system || '',
+    brand: sourceBOQ.brand || '',
+    client: sourceBOQ.client || '',
+    contractor: sourceBOQ.contractor || '',
+    consultant: sourceBOQ.consultant || '',
+    location: sourceBOQ.location || '',
+    notes: sourceBOQ.notes || ''
   };
 
-  return await createBOQ(newBOQData, userId, userName, userEmail);
+  return await createBOQ(newBOQData, currentUserId, currentUserName, currentUserEmail);
 };
 
 export const createRevisionBOQ = async (boq: BOQ, userId: string, userName: string, userEmail: string, notes?: string): Promise<void> => {
