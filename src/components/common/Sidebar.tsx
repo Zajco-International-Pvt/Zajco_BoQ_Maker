@@ -1,21 +1,20 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  PlusCircle, 
-  FileSpreadsheet, 
-  FileUp, 
-  BookmarkCheck, 
-  PackageSearch, 
-  Tag, 
-  ShieldAlert, 
-  Settings, 
-  History,
+import {
+  LayoutDashboard,
+  PlusCircle,
+  FileSpreadsheet,
+  FileUp,
+  BookmarkCheck,
+  PackageSearch,
+  Tag,
+  ShieldAlert,
   Truck,
+  FileCheck2,
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export type NavTab = 
+export type NavTab =
   | 'dashboard'
   | 'create-boq'
   | 'boqs-list'
@@ -24,6 +23,7 @@ export type NavTab =
   | 'item-library'
   | 'vendor-prices'
   | 'procurement'
+  | 'sp-quotations'
   | 'admin-panel'
   | 'audit-logs'
   | 'settings';
@@ -47,9 +47,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, isOpe
     { id: 'item-library', label: 'Product Catalog', icon: PackageSearch },
     { id: 'vendor-prices', label: 'Vendor Prices', icon: Tag },
     { id: 'procurement', label: 'Procurement', icon: Truck, adminOnly: true },
-    { id: 'admin-panel', label: 'Admin Panel', icon: ShieldAlert, adminOnly: true },
-    { id: 'audit-logs', label: 'Audit Logs', icon: History, adminOnly: true },
-    { id: 'settings', label: 'System Settings', icon: Settings, adminOnly: true },
+    { id: 'sp-quotations', label: 'SP Quotation Maker', icon: FileCheck2, adminOnly: true },
+    { id: 'admin-panel', label: 'Admin Panel', icon: ShieldAlert, adminOnly: true }
+    // { id: 'audit-logs', label: 'Audit Logs', icon: History, adminOnly: true },
+    // { id: 'settings', label: 'System Settings', icon: Settings, adminOnly: true },
   ];
 
 
@@ -65,9 +66,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, isOpe
       )}
 
       <aside
-        className={`fixed lg:static top-16 bottom-0 left-0 z-40 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col flex-shrink-0 transition-transform duration-200 ease-in-out ${
-          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
-        } min-h-[calc(100vh-4rem)] overflow-y-auto`}
+        className={`fixed lg:static top-16 bottom-0 left-0 z-40 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col flex-shrink-0 transition-transform duration-200 ease-in-out ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+          } min-h-[calc(100vh-4rem)] overflow-y-auto`}
       >
         <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Navigation Menu</span>
@@ -96,11 +96,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, isOpe
                   onSelectTab(item.id);
                   if (onClose) onClose();
                 }}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 ${
-                  isActive
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 ${isActive
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 font-semibold'
                     : 'hover:bg-slate-800 hover:text-slate-100 text-slate-400'
-                }`}
+                  }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 <span>{item.label}</span>

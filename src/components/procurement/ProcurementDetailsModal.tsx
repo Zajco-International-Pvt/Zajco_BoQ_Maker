@@ -12,7 +12,9 @@ import {
   MessageSquare, 
   Edit3, 
   Award,
-  FileText
+  FileText,
+  Image as ImageIcon,
+  Eye
 } from 'lucide-react';
 import type { 
   ProcurementItem, 
@@ -56,7 +58,8 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
   onEdit,
   currentUser
 }) => {
-  const [activeTab, setActiveTab] = useState<'quotes' | 'specs' | 'history'>('quotes');
+  const [activeTab, setActiveTab] = useState<'quotes' | 'specs' | 'images' | 'history'>('quotes');
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showAddQuote, setShowAddQuote] = useState(false);
   const [statusNote, setStatusNote] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -302,7 +305,19 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
             }`}
           >
             <Package className="w-4 h-4" />
-            <span>Specs & Commercials</span>
+            <span>Specs &amp; Commercials</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('images')}
+            className={`flex items-center space-x-2 px-3 py-2 border-b-2 text-xs font-bold transition-all ${
+              activeTab === 'images'
+                ? 'border-cyan-500 text-cyan-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4" />
+            <span>Photos &amp; Images ({item.images?.length || 0})</span>
           </button>
 
           <button
@@ -314,7 +329,7 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
             }`}
           >
             <Clock className="w-4 h-4" />
-            <span>Activity Log & Notes ({item.activityLog?.length || 0})</span>
+            <span>Activity Log &amp; Notes ({item.activityLog?.length || 0})</span>
           </button>
         </div>
 
@@ -757,6 +772,73 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
             </div>
           )}
 
+          {/* TAB 4: Photos & Images (Base64) */}
+          {activeTab === 'images' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                <div>
+                  <h4 className="text-xs font-bold text-white flex items-center space-x-2">
+                    <ImageIcon className="w-4 h-4 text-cyan-400" />
+                    <span>Attached Item Photos &amp; Reference Images</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Images stored securely in standard Base64 Data URL format.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onEdit(item)}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition-colors shadow-sm"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Manage / Upload Photos</span>
+                </button>
+              </div>
+
+              {(!item.images || item.images.length === 0) ? (
+                <div className="p-12 text-center border border-dashed border-slate-800 rounded-2xl bg-slate-950/40">
+                  <ImageIcon className="w-12 h-12 text-slate-600 mx-auto mb-2 opacity-50" />
+                  <p className="font-semibold text-slate-400 text-sm">No images uploaded for this item.</p>
+                  <p className="text-xs text-slate-500 mt-1 mb-4">
+                    Attach photos, datasheets, or product illustrations to this procurement item.
+                  </p>
+                  <button
+                    onClick={() => onEdit(item)}
+                    className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Upload Item Images</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {item.images.map((imgBase64, idx) => (
+                    <div 
+                      key={idx}
+                      onClick={() => setPreviewImage(imgBase64)}
+                      className="group relative aspect-square rounded-xl overflow-hidden bg-slate-950 border border-slate-800 hover:border-cyan-500/60 shadow-lg cursor-pointer transition-all hover:scale-[1.02]"
+                    >
+                      <img 
+                        src={imgBase64} 
+                        alt={`${item.itemName} image ${idx + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <span className="px-2.5 py-1 bg-slate-900/90 text-white rounded-lg text-xs font-semibold shadow flex items-center space-x-1">
+                          <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>View Full</span>
+                        </span>
+                      </div>
+                      <span className="absolute bottom-1.5 right-1.5 text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-950/90 text-slate-300 border border-slate-800">
+                        Photo #{idx + 1}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Footer */}
@@ -787,6 +869,37 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
         </div>
 
       </div>
+
+      {/* Lightbox Preview Modal */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-60 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl p-2 shadow-2xl overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-2 border-b border-slate-800">
+              <span className="text-xs font-semibold text-slate-300">Base64 Item Image Preview</span>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-2 overflow-auto flex items-center justify-center max-h-[80vh]">
+              <img 
+                src={previewImage} 
+                alt="Enlarged item preview" 
+                className="max-h-[75vh] w-auto object-contain rounded-lg shadow-lg"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

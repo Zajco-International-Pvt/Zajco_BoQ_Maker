@@ -14,6 +14,8 @@ describe('Firestore Security Rules Auditor Assessment', () => {
   it('should prevent non-admin users from self-assigning ADMIN role in users collection', () => {
     expect(rulesContent).toContain("request.resource.data.role != 'ADMIN' || isAdmin()");
     expect(rulesContent).toContain("!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status'])");
+    expect(rulesContent).not.toContain("request.auth.token.email.matches");
+    expect(rulesContent).toContain("getUserData().role == 'ADMIN'");
   });
 
   it('should restrict status transitions to APPROVED/REJECTED to ADMIN only in boqs collection', () => {

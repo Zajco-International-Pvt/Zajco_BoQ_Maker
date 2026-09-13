@@ -132,6 +132,64 @@ export const generateEnquiryReference = (): string => {
   return `ENQ-${yy}${mm}-${seq}`;
 };
 
+/**
+ * Converts an image file to a Base64 data URL string (e.g. data:image/png;base64,...).
+ * Optimizes dimensions if larger than maxDimension to keep Firestore document size lean.
+ */
+export const convertFileToBase64 = (file: File, maxDimension = 1200): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      return reject(new Error('File must be an image format (PNG, JPG, WebP, etc.).'));
+    }
+
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const dataUrl = readerEvent.target?.result as string;
+      if (!dataUrl) return reject(new Error('Failed to read image file data.'));
+
+      // If in non-browser/test environment without Image or Canvas, return raw DataURL
+      if (typeof Image === 'undefined' || typeof document === 'undefined') {
+        return resolve(dataUrl);
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        // If image is already smaller than maxDimension, preserve original data URL
+        if (width <= maxDimension && height <= maxDimension) {
+          return resolve(dataUrl);
+        }
+
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return resolve(dataUrl);
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const resizedDataUrl = canvas.toDataURL(mimeType, 0.88);
+        resolve(resizedDataUrl);
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+};
+
 let lastProcurementError: string | null = null;
 const CACHE_KEY = 'zajco_procurement_items_cache';
 
@@ -191,6 +249,7 @@ export const getProcurementItems = async (): Promise<ProcurementItem[]> => {
         category: data.category || 'General',
         brand: data.brand || '',
         model: data.model || '',
+        images: Array.isArray(data.images) ? data.images : (data.imageUrl ? [data.imageUrl] : []),
         quantity: Number(data.quantity) || 1,
         unit: data.unit || 'pcs',
         targetUnitPrice: data.targetUnitPrice ? Number(data.targetUnitPrice) : undefined,
@@ -294,6 +353,7 @@ export const saveProcurementItem = async (
       category: itemData.category || 'General',
       brand: itemData.brand || '',
       model: itemData.model || '',
+      images: itemData.images || [],
       quantity: Number(itemData.quantity) || 1,
       unit: itemData.unit || 'pcs',
       targetUnitPrice: itemData.targetUnitPrice ? Number(itemData.targetUnitPrice) : undefined,

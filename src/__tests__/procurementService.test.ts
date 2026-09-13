@@ -135,5 +135,38 @@ describe('Procurement Service & Module Helpers', () => {
     expect(result.suggestedMapping.priority).toBe('Priority');
   });
 
+  it('should support storing multiple Base64 encoded images on ProcurementItem', () => {
+    const sampleBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const itemWithImages: ProcurementItem = {
+      id: 'test_item_img_1',
+      referenceNumber: 'ENQ-2609-5678',
+      itemName: 'Access Control Controller',
+      description: '4-door IP controller with enclosure',
+      category: 'Access Control',
+      images: [sampleBase64],
+      quantity: 2,
+      unit: 'pcs',
+      currency: 'SAR',
+      priority: 'HIGH',
+      status: 'NEW_ENQUIRY',
+      vendorQuotes: [],
+      activityLog: [],
+      createdBy: 'admin_1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    expect(itemWithImages.images).toBeDefined();
+    expect(itemWithImages.images).toHaveLength(1);
+    expect(itemWithImages.images![0]).toMatch(/^data:image\/[a-zA-Z]+;base64,/);
+  });
+
+  it('should reject non-image files in convertFileToBase64', async () => {
+    const { convertFileToBase64 } = await import('../services/procurementService');
+    const fakeTextFile = new File(['hello text'], 'notes.txt', { type: 'text/plain' });
+
+    await expect(convertFileToBase64(fakeTextFile)).rejects.toThrow(/File must be an image format/);
+  });
+
 });
 

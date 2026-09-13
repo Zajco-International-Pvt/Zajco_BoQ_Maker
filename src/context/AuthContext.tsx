@@ -44,13 +44,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserProfile(updatedProfile);
         return updatedProfile;
       } else {
-        // If user logged in via auth but document does not exist yet (or first user seed)
-        const isFirstAdmin = user.email?.toLowerCase().includes('admin') || false;
+        // If user logged in via auth but document does not exist yet (default to USER role)
         const newProfile: UserProfile = {
           uid: user.uid,
           name: user.displayName || user.email?.split('@')[0] || 'User',
           email: user.email || '',
-          role: isFirstAdmin ? 'ADMIN' : 'USER',
+          role: 'USER',
           status: 'ACTIVE',
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString()
@@ -62,12 +61,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.error('Error fetching user profile:', err);
       // Fallback profile if Firestore read is blocked or network failure
-      const isFirstAdmin = user.email?.toLowerCase().includes('admin') || false;
       const fallbackProfile: UserProfile = {
         uid: user.uid,
         name: user.displayName || user.email?.split('@')[0] || 'User',
         email: user.email || '',
-        role: isFirstAdmin ? 'ADMIN' : 'USER',
+        role: 'USER',
         status: 'ACTIVE',
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString()
@@ -112,15 +110,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await createUserWithEmailAndPassword(auth, email, pass);
       if (res.user) {
-        // Check if admin email or setup
-        const isFirstAdmin = email.toLowerCase().includes('admin');
+        // All new user registrations default strictly to 'USER' role
         const newProfile: UserProfile = {
           uid: res.user.uid,
           name,
           email,
           phone,
           company,
-          role: isFirstAdmin ? 'ADMIN' : 'USER',
+          role: 'USER',
           status: 'ACTIVE',
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString()
@@ -154,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isAdmin = userProfile?.role === 'ADMIN' || (currentUser?.email ? currentUser.email.toLowerCase().includes('admin') : false);
+  const isAdmin = userProfile?.role === 'ADMIN';
 
   return (
     <AuthContext.Provider

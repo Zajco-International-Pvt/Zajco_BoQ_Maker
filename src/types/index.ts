@@ -238,6 +238,7 @@ export interface ProcurementItem {
   category: string;
   brand?: string;
   model?: string;
+  images?: string[]; // Base64 data URLs: "data:image/png;base64,..."
   quantity: number;
   unit: string;
   targetUnitPrice?: number;

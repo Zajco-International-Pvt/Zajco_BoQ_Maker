@@ -18,7 +18,9 @@ import {
   Tag,
   FileUp,
   ExternalLink,
-  Copy
+  Copy,
+  Package,
+  X
 } from 'lucide-react';
 import type { ProcurementItem, ProcurementStatus, SystemSettings } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -57,6 +59,7 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
   const [isExcelModalOpen, setIsExcelModalOpen] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<ProcurementItem | null>(null);
   const [selectedItemForDetails, setSelectedItemForDetails] = useState<ProcurementItem | null>(null);
+  const [previewLightboxImage, setPreviewLightboxImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAdmin) {
@@ -611,21 +614,48 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
                       </td>
 
                       {/* Item Name & Specs */}
-                      <td className="p-3.5 max-w-xs">
-                        <button
-                          onClick={() => setSelectedItemForDetails(item)}
-                          className="font-bold text-white hover:text-blue-400 transition-colors text-left line-clamp-1"
-                        >
-                          {item.itemName}
-                        </button>
-                        <div className="text-[11px] text-slate-400 flex items-center space-x-1 mt-0.5">
-                          {item.brand && <span className="text-slate-300 font-semibold">{item.brand}</span>}
-                          {item.model && <span className="font-mono text-slate-400">({item.model})</span>}
-                          {item.projectReference && (
-                            <span className="text-slate-500 truncate max-w-[120px]">
-                              • {item.projectReference}
-                            </span>
+                      <td className="p-3.5 max-w-sm">
+                        <div className="flex items-start space-x-2.5">
+                          {item.images && item.images.length > 0 ? (
+                            <div 
+                              className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-slate-700 cursor-pointer group hover:border-cyan-400 shadow transition-all"
+                              onClick={() => setPreviewLightboxImage(item.images![0])}
+                              title="Click to view image"
+                            >
+                              <img 
+                                src={item.images[0]} 
+                                alt={item.itemName} 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
+                              />
+                              {item.images.length > 1 && (
+                                <span className="absolute bottom-0 right-0 bg-slate-950/80 text-[8px] font-mono font-bold text-cyan-300 px-1 rounded-tl">
+                                  +{item.images.length - 1}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-600 flex-shrink-0">
+                              <Package className="w-5 h-5 opacity-40" />
+                            </div>
                           )}
+
+                          <div className="min-w-0 flex-1">
+                            <button
+                              onClick={() => setSelectedItemForDetails(item)}
+                              className="font-bold text-white hover:text-blue-400 transition-colors text-left line-clamp-1 block"
+                            >
+                              {item.itemName}
+                            </button>
+                            <div className="text-[11px] text-slate-400 flex items-center space-x-1 mt-0.5 truncate">
+                              {item.brand && <span className="text-slate-300 font-semibold">{item.brand}</span>}
+                              {item.model && <span className="font-mono text-slate-400">({item.model})</span>}
+                              {item.projectReference && (
+                                <span className="text-slate-500 truncate max-w-[120px]">
+                                  • {item.projectReference}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </td>
 
@@ -789,6 +819,37 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
           onImportSuccess={() => loadData()}
           currentUser={userProfile}
         />
+      )}
+
+      {/* Lightbox Image Preview Modal */}
+      {previewLightboxImage && (
+        <div 
+          className="fixed inset-0 z-60 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setPreviewLightboxImage(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl p-2 shadow-2xl overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-2 border-b border-slate-800">
+              <span className="text-xs font-semibold text-slate-300">Base64 Item Image Preview</span>
+              <button
+                type="button"
+                onClick={() => setPreviewLightboxImage(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-2 overflow-auto flex items-center justify-center max-h-[80vh]">
+              <img 
+                src={previewLightboxImage} 
+                alt="Enlarged item preview" 
+                className="max-h-[75vh] w-auto object-contain rounded-lg shadow-lg"
+              />
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

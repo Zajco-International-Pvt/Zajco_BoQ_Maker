@@ -5,7 +5,7 @@ import { Lock, Mail, User, Building, Phone, ArrowRight, CheckCircle2, AlertCircl
 export const AuthPages: React.FC = () => {
   const { login, register, resetPassword } = useAuth();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -64,7 +64,7 @@ export const AuthPages: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="bg-slate-900/80 backdrop-blur-xl py-8 px-4 shadow-2xl border border-slate-800/80 sm:rounded-2xl sm:px-10">
-          
+
           {error && (
             <div className="mb-6 bg-rose-500/10 border border-rose-500/30 rounded-xl p-3.5 flex items-start space-x-3 text-rose-300 text-sm">
               <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
@@ -180,10 +180,10 @@ export const AuthPages: React.FC = () => {
                 {loading
                   ? 'Processing...'
                   : mode === 'login'
-                  ? 'Sign In to Dashboard'
-                  : mode === 'register'
-                  ? 'Create ZAJCO Account'
-                  : 'Send Reset Link'}
+                    ? 'Sign In to Dashboard'
+                    : mode === 'register'
+                      ? 'Create ZAJCO Account'
+                      : 'Send Reset Link'}
               </span>
               <ArrowRight className="w-4 h-4" />
             </button>
@@ -237,11 +237,11 @@ export const AuthPages: React.FC = () => {
             )}
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-800/80 text-center">
+          {/* <div className="mt-6 pt-4 border-t border-slate-800/80 text-center">
             <p className="text-[11px] text-slate-500">
-              Note: Email containing "admin" automatically assigns ADMIN role.
+              Role permissions (Administrator) are assigned exclusively by system administrators or direct database configuration.
             </p>
-          </div>
+          </div> */}
 
         </div>
       </div>

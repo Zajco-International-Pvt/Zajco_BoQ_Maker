@@ -7,10 +7,19 @@ import {
   Calendar, 
   User, 
   AlertCircle,
-  Save
+  Save,
+  Image as ImageIcon,
+  UploadCloud,
+  Trash2,
+  Eye,
+  Loader2
 } from 'lucide-react';
 import type { ProcurementItem, ProcurementStatus, ProcurementPriority } from '../../types';
-import { PROCUREMENT_STATUS_CONFIG, PROCUREMENT_PRIORITY_CONFIG } from '../../services/procurementService';
+import { 
+  PROCUREMENT_STATUS_CONFIG, 
+  PROCUREMENT_PRIORITY_CONFIG,
+  convertFileToBase64 
+} from '../../services/procurementService';
 
 interface ProcurementItemModalProps {
   isOpen: boolean;
@@ -59,6 +68,11 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
   const [projectReference, setProjectReference] = useState('');
   const [expectedDate, setExpectedDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [previewImageModal, setPreviewImageModal] = useState<string | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -88,6 +102,7 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
       setProjectReference(initialItem.projectReference || '');
       setExpectedDate(initialItem.expectedDate || '');
       setNotes(initialItem.notes || '');
+      setImages(initialItem.images || []);
     } else {
       resetForm();
     }
@@ -111,7 +126,34 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
     setProjectReference('');
     setExpectedDate('');
     setNotes('');
+    setImages([]);
     setErrorMsg(null);
+  };
+
+  const handleImageUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setIsUploadingImage(true);
+    setErrorMsg(null);
+    try {
+      const newImages: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+          const base64 = await convertFileToBase64(file);
+          newImages.push(base64);
+        }
+      }
+      setImages((prev) => [...prev, ...newImages]);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to process image upload.');
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   if (!isOpen) return null;
@@ -142,6 +184,7 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
         brand: brand.trim(),
         model: model.trim(),
         description: description.trim(),
+        images: images,
         quantity: Number(quantity) || 1,
         unit: unit.trim() || 'pcs',
         targetUnitPrice: targetUnitPrice ? parseFloat(targetUnitPrice) : undefined,
@@ -284,6 +327,103 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
                 />
               </div>
             </div>
+          </div>
+
+          {/* Section: Item Images & Reference Photos (Base64) */}
+          <div className="space-y-3 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center space-x-1.5">
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>Item Images &amp; Photos ({images.length})</span>
+              </h3>
+              <span className="text-[10px] text-slate-500 font-mono">
+                Base64 Format (data:image/...;base64)
+              </span>
+            </div>
+
+            {/* Upload Drag & Drop Box */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+              onDragLeave={() => setIsDraggingOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingOver(false);
+                if (e.dataTransfer.files) handleImageUpload(e.dataTransfer.files);
+              }}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
+                isDraggingOver 
+                  ? 'border-cyan-500 bg-cyan-500/10' 
+                  : 'border-slate-800 hover:border-slate-700 bg-slate-950/60 hover:bg-slate-950'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handleImageUpload(e.target.files)}
+              />
+
+              {isUploadingImage ? (
+                <div className="flex items-center justify-center space-x-2 text-cyan-400 py-1">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-xs font-semibold">Processing &amp; Encoding Image to Base64...</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center space-y-1">
+                  <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                    <UploadCloud className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs font-semibold text-slate-200">
+                    Click to upload or drag &amp; drop item images
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    PNG, JPG, WebP (Automatically encoded into base64 Data URL)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail Preview Grid */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 pt-1">
+                {images.map((imgBase64, idx) => (
+                  <div 
+                    key={idx} 
+                    className="group relative aspect-square rounded-xl overflow-hidden bg-slate-950 border border-slate-800 hover:border-cyan-500/60 shadow-md transition-all"
+                  >
+                    <img 
+                      src={imgBase64} 
+                      alt={`Item image ${idx + 1}`} 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-slate-950/75 opacity-0 group-hover:opacity-100 flex items-center justify-center space-x-1.5 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setPreviewImageModal(imgBase64); }}
+                        className="p-1.5 rounded-lg bg-slate-800 text-white hover:bg-cyan-600 transition-colors"
+                        title="View Full Size"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveImage(idx); }}
+                        className="p-1.5 rounded-lg bg-slate-800 text-rose-400 hover:bg-rose-600 hover:text-white transition-colors"
+                        title="Remove Image"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <span className="absolute bottom-1 right-1 text-[9px] font-mono px-1 py-0.5 rounded bg-slate-950/80 text-slate-400">
+                      #{idx + 1}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Section 2: Quantity & Budget Target */}
@@ -479,6 +619,37 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
         </form>
 
       </div>
+
+      {/* Lightbox Image Preview Modal */}
+      {previewImageModal && (
+        <div 
+          className="fixed inset-0 z-60 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setPreviewImageModal(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl p-2 shadow-2xl overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-2 border-b border-slate-800">
+              <span className="text-xs font-semibold text-slate-300">Base64 Item Image Preview</span>
+              <button
+                type="button"
+                onClick={() => setPreviewImageModal(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-2 overflow-auto flex items-center justify-center max-h-[80vh]">
+              <img 
+                src={previewImageModal} 
+                alt="Enlarged item preview" 
+                className="max-h-[75vh] w-auto object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

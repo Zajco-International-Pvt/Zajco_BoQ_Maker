@@ -13,6 +13,7 @@ import { TemplatesModal } from './components/templates/TemplatesModal';
 import { ItemLibraryModal } from './components/library/ItemLibraryModal';
 import { VendorPriceModal } from './components/vendor/VendorPriceModal';
 import { ProcurementDashboard } from './components/procurement/ProcurementDashboard';
+import { SPQuotationMaker } from './components/sp-quotation/SPQuotationMaker';
 import type { BOQ, BOQTemplate, ItemLibraryProduct, SystemSettings, VendorPrice } from './types';
 import { getBOQsList } from './services/boqService';
 import { getBOQTemplates, getItemLibraryProducts, getSystemSettings, getVendorPrices, DEFAULT_SETTINGS } from './services/adminService';
@@ -201,6 +202,10 @@ export const AppContent: React.FC = () => {
 
           {currentTab === 'procurement' && (
             <ProcurementDashboard settings={settings} />
+          )}
+
+          {currentTab === 'sp-quotations' && (
+            <SPQuotationMaker />
           )}
 
           {(currentTab === 'admin-panel' || currentTab === 'settings' || currentTab === 'audit-logs') && (
