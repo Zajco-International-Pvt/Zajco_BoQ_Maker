@@ -188,3 +188,72 @@ export interface AuditLog {
   timestamp: string;
   ipAddress?: string;
 }
+
+export type ProcurementStatus = 
+  | 'NEW_ENQUIRY'
+  | 'RFQ_SENT'
+  | 'QUOTATION_IN_PROGRESS'
+  | 'QUOTATION_RECEIVED'
+  | 'UNDER_EVALUATION'
+  | 'PO_ISSUED'
+  | 'DELIVERED'
+  | 'CLOSED'
+  | 'CANCELLED';
+
+export type ProcurementPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export interface VendorQuotationEntry {
+  id: string;
+  vendorName: string;
+  contactPerson?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  unitPrice: number;
+  currency: string;
+  discountPercentage?: number;
+  netPrice: number;
+  leadTime?: string;
+  quoteReference?: string;
+  quoteDate?: string;
+  validUntil?: string;
+  isAwarded?: boolean;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ProcurementActivityLog {
+  id: string;
+  timestamp: string;
+  authorName: string;
+  authorEmail?: string;
+  action: string;
+  note?: string;
+}
+
+export interface ProcurementItem {
+  id: string;
+  referenceNumber: string;
+  itemName: string;
+  description: string;
+  category: string;
+  brand?: string;
+  model?: string;
+  quantity: number;
+  unit: string;
+  targetUnitPrice?: number;
+  currency: string;
+  priority: ProcurementPriority;
+  status: ProcurementStatus;
+  requestedBy?: string;
+  assignedTo?: string;
+  projectReference?: string;
+  expectedDate?: string;
+  vendorQuotes: VendorQuotationEntry[];
+  activityLog: ProcurementActivityLog[];
+  notes?: string;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+

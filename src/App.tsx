@@ -12,6 +12,7 @@ import { AdminPanel } from './components/admin/AdminPanel';
 import { TemplatesModal } from './components/templates/TemplatesModal';
 import { ItemLibraryModal } from './components/library/ItemLibraryModal';
 import { VendorPriceModal } from './components/vendor/VendorPriceModal';
+import { ProcurementDashboard } from './components/procurement/ProcurementDashboard';
 import type { BOQ, BOQTemplate, ItemLibraryProduct, SystemSettings, VendorPrice } from './types';
 import { getBOQsList } from './services/boqService';
 import { getBOQTemplates, getItemLibraryProducts, getSystemSettings, getVendorPrices, DEFAULT_SETTINGS } from './services/adminService';
@@ -196,6 +197,10 @@ export const AppContent: React.FC = () => {
               vendorPrices={vendorPrices}
               onRefresh={refreshData}
             />
+          )}
+
+          {currentTab === 'procurement' && (
+            <ProcurementDashboard settings={settings} />
           )}
 
           {(currentTab === 'admin-panel' || currentTab === 'settings' || currentTab === 'audit-logs') && (

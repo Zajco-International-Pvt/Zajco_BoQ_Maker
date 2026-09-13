@@ -31,4 +31,11 @@ describe('Firestore Security Rules Auditor Assessment', () => {
     expect(rulesContent).toContain('allow write: if isAdmin();');
   });
 
+  it('should restrict procurementItems collection to authenticated users for both read and write', () => {
+    expect(rulesContent).toContain('match /procurementItems/{itemId}');
+    expect(rulesContent).toContain('allow read, write: if isAuthenticated();');
+  });
+
 });
+
+

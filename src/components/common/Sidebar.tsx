@@ -10,6 +10,7 @@ import {
   ShieldAlert, 
   Settings, 
   History,
+  Truck,
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -22,6 +23,7 @@ export type NavTab =
   | 'templates'
   | 'item-library'
   | 'vendor-prices'
+  | 'procurement'
   | 'admin-panel'
   | 'audit-logs'
   | 'settings';
@@ -44,10 +46,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, isOpe
     { id: 'templates', label: 'BOQ Templates', icon: BookmarkCheck },
     { id: 'item-library', label: 'Product Catalog', icon: PackageSearch },
     { id: 'vendor-prices', label: 'Vendor Prices', icon: Tag },
+    { id: 'procurement', label: 'Procurement', icon: Truck, adminOnly: true },
     { id: 'admin-panel', label: 'Admin Panel', icon: ShieldAlert, adminOnly: true },
     { id: 'audit-logs', label: 'Audit Logs', icon: History, adminOnly: true },
     { id: 'settings', label: 'System Settings', icon: Settings, adminOnly: true },
   ];
+
 
   return (
     <>
