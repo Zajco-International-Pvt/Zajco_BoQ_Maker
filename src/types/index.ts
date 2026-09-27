@@ -190,6 +190,17 @@ export interface AuditLog {
 }
 
 export type ProcurementStatus = 
+  | 'PURCHASES_POS_COMPLETED'
+  | 'PENDING_POS'
+  | 'URGENTLY_REQUIRED_MATERIALS'
+  | 'SUPPLIER_DELAYS'
+  | 'PRICE_SUPPLIER_ISSUES'
+  | 'EXPECTED_DELIVERIES'
+  | 'MATERIAL_SHORTAGES'
+  | 'SUPPLIER_PAYMENT_ISSUES'
+  | 'CRITICAL_STOCK_REQUIREMENTS'
+  | 'CHAIRMAN_APPROVAL_REQUIRED'
+  // Legacy aliases for backward compatibility with existing saved records
   | 'NEW_ENQUIRY'
   | 'RFQ_SENT'
   | 'QUOTATION_IN_PROGRESS'

@@ -32,7 +32,9 @@ import {
   exportProcurementItemsToCSV,
   getLastProcurementError,
   PROCUREMENT_STATUS_CONFIG, 
-  PROCUREMENT_PRIORITY_CONFIG 
+  PROCUREMENT_PRIORITY_CONFIG,
+  ACTIVE_PROCUREMENT_STATUSES,
+  getProcurementStatusConfig
 } from '../../services/procurementService';
 import { ProcurementItemModal } from './ProcurementItemModal';
 import { ProcurementDetailsModal } from './ProcurementDetailsModal';
@@ -136,12 +138,18 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
   // Summary Metrics
   const stats = useMemo(() => {
     const total = items.length;
-    const inQuotation = items.filter(i => i.status === 'QUOTATION_IN_PROGRESS' || i.status === 'RFQ_SENT').length;
-    const quotesReceived = items.filter(i => i.status === 'QUOTATION_RECEIVED' || i.status === 'UNDER_EVALUATION').length;
-    const poIssued = items.filter(i => i.status === 'PO_ISSUED' || i.status === 'DELIVERED').length;
-    const closed = items.filter(i => i.status === 'CLOSED').length;
-    const urgent = items.filter(i => i.priority === 'URGENT' && i.status !== 'CLOSED' && i.status !== 'CANCELLED').length;
-    return { total, inQuotation, quotesReceived, poIssued, closed, urgent };
+    const completed = items.filter(i => i.status === 'PURCHASES_POS_COMPLETED').length;
+    const pendingPOs = items.filter(i => i.status === 'PENDING_POS').length;
+    const urgentMaterials = items.filter(i => i.status === 'URGENTLY_REQUIRED_MATERIALS' || i.priority === 'URGENT').length;
+    const expectedDeliveries = items.filter(i => i.status === 'EXPECTED_DELIVERIES').length;
+    const approvalRequired = items.filter(i => i.status === 'CHAIRMAN_APPROVAL_REQUIRED').length;
+    const issuesAndDelays = items.filter(i => 
+      i.status === 'SUPPLIER_DELAYS' || 
+      i.status === 'PRICE_SUPPLIER_ISSUES' || 
+      i.status === 'MATERIAL_SHORTAGES' || 
+      i.status === 'SUPPLIER_PAYMENT_ISSUES'
+    ).length;
+    return { total, completed, pendingPOs, urgentMaterials, expectedDeliveries, approvalRequired, issuesAndDelays };
   }, [items]);
 
   // Unique categories for filter dropdown
@@ -173,10 +181,13 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
 
       // Status filter
       if (statusFilter !== 'ALL') {
-        if (statusFilter === 'IN_QUOTATION_GROUP') {
-          if (item.status !== 'QUOTATION_IN_PROGRESS' && item.status !== 'RFQ_SENT') return false;
-        } else if (statusFilter === 'QUOTES_RECEIVED_GROUP') {
-          if (item.status !== 'QUOTATION_RECEIVED' && item.status !== 'UNDER_EVALUATION') return false;
+        if (statusFilter === 'ISSUES_GROUP') {
+          if (
+            item.status !== 'SUPPLIER_DELAYS' &&
+            item.status !== 'PRICE_SUPPLIER_ISSUES' &&
+            item.status !== 'MATERIAL_SHORTAGES' &&
+            item.status !== 'SUPPLIER_PAYMENT_ISSUES'
+          ) return false;
         } else if (item.status !== statusFilter) {
           return false;
         }
@@ -339,7 +350,7 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
       )}
 
       {/* KPI Metric Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div 
           onClick={() => setStatusFilter('ALL')}
           className={`p-4 rounded-xl border transition-all cursor-pointer ${
@@ -349,7 +360,7 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Total Enquiries</span>
+            <span className="text-xs font-medium text-slate-400">Total Items</span>
             <Tag className="w-4 h-4 text-blue-400" />
           </div>
           <div className="mt-2 text-2xl font-black text-white">{stats.total}</div>
@@ -357,67 +368,83 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
         </div>
 
         <div 
-          onClick={() => setStatusFilter('IN_QUOTATION_GROUP')}
+          onClick={() => setStatusFilter('PENDING_POS')}
           className={`p-4 rounded-xl border transition-all cursor-pointer ${
-            statusFilter === 'IN_QUOTATION_GROUP' || statusFilter === 'QUOTATION_IN_PROGRESS'
+            statusFilter === 'PENDING_POS'
               ? 'bg-amber-950/40 border-amber-500/50 shadow-lg shadow-amber-600/10'
               : 'bg-slate-900 border-slate-800 hover:border-slate-700'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-amber-400">In Quotation</span>
+            <span className="text-xs font-medium text-amber-400">Pending POs</span>
             <Clock className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="mt-2 text-2xl font-black text-amber-300">{stats.inQuotation}</div>
-          <div className="text-[10px] text-slate-500 mt-1">Awaiting vendor quotes</div>
+          <div className="mt-2 text-2xl font-black text-amber-300">{stats.pendingPOs}</div>
+          <div className="text-[10px] text-slate-500 mt-1">Pending purchase orders</div>
         </div>
 
         <div 
-          onClick={() => setStatusFilter('QUOTES_RECEIVED_GROUP')}
+          onClick={() => setStatusFilter('EXPECTED_DELIVERIES')}
           className={`p-4 rounded-xl border transition-all cursor-pointer ${
-            statusFilter === 'QUOTES_RECEIVED_GROUP'
+            statusFilter === 'EXPECTED_DELIVERIES'
               ? 'bg-cyan-950/40 border-cyan-500/50 shadow-lg shadow-cyan-600/10'
               : 'bg-slate-900 border-slate-800 hover:border-slate-700'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-cyan-400">Quotes Received</span>
-            <Building2 className="w-4 h-4 text-cyan-400" />
+            <span className="text-xs font-medium text-cyan-400">Expected Deliveries</span>
+            <Truck className="w-4 h-4 text-cyan-400" />
           </div>
-          <div className="mt-2 text-2xl font-black text-cyan-300">{stats.quotesReceived}</div>
-          <div className="text-[10px] text-slate-500 mt-1">Under evaluation</div>
+          <div className="mt-2 text-2xl font-black text-cyan-300">{stats.expectedDeliveries}</div>
+          <div className="text-[10px] text-slate-500 mt-1">In transit / scheduled</div>
         </div>
 
         <div 
-          onClick={() => setStatusFilter('CLOSED')}
+          onClick={() => setStatusFilter('URGENTLY_REQUIRED_MATERIALS')}
           className={`p-4 rounded-xl border transition-all cursor-pointer ${
-            statusFilter === 'CLOSED'
-              ? 'bg-emerald-950/40 border-emerald-500/50 shadow-lg shadow-emerald-600/10'
-              : 'bg-slate-900 border-slate-800 hover:border-slate-700'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-emerald-400">Closed Items</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="mt-2 text-2xl font-black text-emerald-300">{stats.closed}</div>
-          <div className="text-[10px] text-slate-500 mt-1">Successfully fulfilled</div>
-        </div>
-
-        <div 
-          onClick={() => setPriorityFilter(priorityFilter === 'URGENT' ? 'ALL' : 'URGENT')}
-          className={`p-4 rounded-xl border transition-all cursor-pointer col-span-2 sm:col-span-1 ${
-            priorityFilter === 'URGENT'
+            statusFilter === 'URGENTLY_REQUIRED_MATERIALS'
               ? 'bg-rose-950/40 border-rose-500/50 shadow-lg shadow-rose-600/10'
               : 'bg-slate-900 border-slate-800 hover:border-slate-700'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-rose-400">Urgent Enquiries</span>
+            <span className="text-xs font-medium text-rose-400">Urgent Materials</span>
             <AlertTriangle className="w-4 h-4 text-rose-400" />
           </div>
-          <div className="mt-2 text-2xl font-black text-rose-300">{stats.urgent}</div>
-          <div className="text-[10px] text-slate-500 mt-1">Requiring immediate action</div>
+          <div className="mt-2 text-2xl font-black text-rose-300">{stats.urgentMaterials}</div>
+          <div className="text-[10px] text-slate-500 mt-1">Urgent / priority site needs</div>
+        </div>
+
+        <div 
+          onClick={() => setStatusFilter('ISSUES_GROUP')}
+          className={`p-4 rounded-xl border transition-all cursor-pointer ${
+            statusFilter === 'ISSUES_GROUP'
+              ? 'bg-purple-950/40 border-purple-500/50 shadow-lg shadow-purple-600/10'
+              : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-purple-400">Delays & Issues</span>
+            <Building2 className="w-4 h-4 text-purple-400" />
+          </div>
+          <div className="mt-2 text-2xl font-black text-purple-300">{stats.issuesAndDelays}</div>
+          <div className="text-[10px] text-slate-500 mt-1">Supplier, price, payment</div>
+        </div>
+
+        <div 
+          onClick={() => setStatusFilter('PURCHASES_POS_COMPLETED')}
+          className={`p-4 rounded-xl border transition-all cursor-pointer ${
+            statusFilter === 'PURCHASES_POS_COMPLETED'
+              ? 'bg-emerald-950/40 border-emerald-500/50 shadow-lg shadow-emerald-600/10'
+              : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-emerald-400">POs Completed</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="mt-2 text-2xl font-black text-emerald-300">{stats.completed}</div>
+          <div className="text-[10px] text-slate-500 mt-1">Fulfilled and delivered</div>
         </div>
       </div>
 
@@ -485,71 +512,25 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
             All ({items.length})
           </button>
 
-          <button
-            onClick={() => setStatusFilter('QUOTATION_IN_PROGRESS')}
-            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
-              statusFilter === 'QUOTATION_IN_PROGRESS'
-                ? 'bg-amber-600 text-white shadow'
-                : 'bg-slate-950 text-slate-400 hover:text-amber-300 border border-slate-800'
-            }`}
-          >
-            In Quotation ({items.filter(i => i.status === 'QUOTATION_IN_PROGRESS').length})
-          </button>
+          {ACTIVE_PROCUREMENT_STATUSES.map((statusKey) => {
+            const conf = PROCUREMENT_STATUS_CONFIG[statusKey];
+            const count = items.filter(i => i.status === statusKey).length;
+            const isActive = statusFilter === statusKey;
 
-          <button
-            onClick={() => setStatusFilter('QUOTATION_RECEIVED')}
-            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
-              statusFilter === 'QUOTATION_RECEIVED'
-                ? 'bg-cyan-600 text-white shadow'
-                : 'bg-slate-950 text-slate-400 hover:text-cyan-300 border border-slate-800'
-            }`}
-          >
-            Quotes Received ({items.filter(i => i.status === 'QUOTATION_RECEIVED').length})
-          </button>
-
-          <button
-            onClick={() => setStatusFilter('UNDER_EVALUATION')}
-            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
-              statusFilter === 'UNDER_EVALUATION'
-                ? 'bg-purple-600 text-white shadow'
-                : 'bg-slate-950 text-slate-400 hover:text-purple-300 border border-slate-800'
-            }`}
-          >
-            Under Evaluation ({items.filter(i => i.status === 'UNDER_EVALUATION').length})
-          </button>
-
-          <button
-            onClick={() => setStatusFilter('PO_ISSUED')}
-            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
-              statusFilter === 'PO_ISSUED'
-                ? 'bg-teal-600 text-white shadow'
-                : 'bg-slate-950 text-slate-400 hover:text-teal-300 border border-slate-800'
-            }`}
-          >
-            PO Issued ({items.filter(i => i.status === 'PO_ISSUED').length})
-          </button>
-
-          <button
-            onClick={() => setStatusFilter('DELIVERED')}
-            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
-              statusFilter === 'DELIVERED'
-                ? 'bg-emerald-600 text-white shadow'
-                : 'bg-slate-950 text-slate-400 hover:text-emerald-300 border border-slate-800'
-            }`}
-          >
-            Delivered ({items.filter(i => i.status === 'DELIVERED').length})
-          </button>
-
-          <button
-            onClick={() => setStatusFilter('CLOSED')}
-            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
-              statusFilter === 'CLOSED'
-                ? 'bg-slate-700 text-emerald-300 shadow'
-                : 'bg-slate-950 text-slate-400 hover:text-emerald-300 border border-slate-800'
-            }`}
-          >
-            Closed ({items.filter(i => i.status === 'CLOSED').length})
-          </button>
+            return (
+              <button
+                key={statusKey}
+                onClick={() => setStatusFilter(statusKey)}
+                className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all border ${
+                  isActive
+                    ? `${conf.bgClass} ${conf.textClass} ${conf.borderClass} ring-1 ring-white/20 shadow`
+                    : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800'
+                }`}
+              >
+                {conf.label} ({count})
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -592,7 +573,7 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
                 </tr>
               ) : (
                 filteredItems.map(item => {
-                  const statusConf = PROCUREMENT_STATUS_CONFIG[item.status] || PROCUREMENT_STATUS_CONFIG.NEW_ENQUIRY;
+                  const statusConf = getProcurementStatusConfig(item.status);
                   const priorityConf = PROCUREMENT_PRIORITY_CONFIG[item.priority] || PROCUREMENT_PRIORITY_CONFIG.MEDIUM;
                   const quotesCount = item.vendorQuotes?.length || 0;
 
@@ -689,7 +670,7 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
                             onChange={(e) => handleQuickStatusChange(item.id, e.target.value as ProcurementStatus)}
                             className={`text-[11px] font-bold px-2 py-1 rounded-lg border appearance-none pr-6 cursor-pointer focus:outline-none transition-colors ${statusConf.bgClass} ${statusConf.textClass} ${statusConf.borderClass}`}
                           >
-                            {(Object.keys(PROCUREMENT_STATUS_CONFIG) as ProcurementStatus[]).map((s) => (
+                            {ACTIVE_PROCUREMENT_STATUSES.map((s) => (
                               <option key={s} value={s} className="bg-slate-900 text-white">
                                 {PROCUREMENT_STATUS_CONFIG[s].label}
                               </option>

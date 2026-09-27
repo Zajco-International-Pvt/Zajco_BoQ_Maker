@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { 
+import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (docSnap.exists()) {
         const data = docSnap.data() as UserProfile;
         // Update last login gracefully
-        updateDoc(userRef, { lastLogin: new Date().toISOString() }).catch(() => {});
+        updateDoc(userRef, { lastLogin: new Date().toISOString() }).catch(() => { });
         const updatedProfile = { ...data, lastLogin: new Date().toISOString() };
         setUserProfile(updatedProfile);
         return updatedProfile;
@@ -98,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res.user) {
         const profile = await fetchUserProfile(res.user);
         setCurrentUser(res.user);
-        await logAuditEvent(res.user.uid, profile.name || res.user.displayName || email, email, 'USER_LOGIN', 'User logged in').catch(() => {});
+        await logAuditEvent(res.user.uid, profile.name || res.user.displayName || email, email, 'USER_LOGIN', 'User logged in').catch(() => { });
       }
     } finally {
       setLoading(false);
@@ -125,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await setDoc(doc(db, 'users', res.user.uid), newProfile).catch((err) => console.warn('Register setDoc warning:', err));
         setUserProfile(newProfile);
         setCurrentUser(res.user);
-        await logAuditEvent(res.user.uid, name, email, 'USER_REGISTER', `User registered with role ${newProfile.role}`).catch(() => {});
+        await logAuditEvent(res.user.uid, name, email, 'USER_REGISTER', `User registered with role ${newProfile.role}`).catch(() => { });
       }
     } finally {
       setLoading(false);
@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     if (userProfile) {
-      await logAuditEvent(userProfile.uid, userProfile.name, userProfile.email, 'USER_LOGOUT', 'User logged out').catch(() => {});
+      await logAuditEvent(userProfile.uid, userProfile.name, userProfile.email, 'USER_LOGOUT', 'User logged out').catch(() => { });
     }
     await signOut(auth);
     setCurrentUser(null);

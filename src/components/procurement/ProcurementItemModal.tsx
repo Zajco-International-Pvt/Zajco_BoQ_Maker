@@ -18,6 +18,8 @@ import type { ProcurementItem, ProcurementStatus, ProcurementPriority } from '..
 import { 
   PROCUREMENT_STATUS_CONFIG, 
   PROCUREMENT_PRIORITY_CONFIG,
+  ACTIVE_PROCUREMENT_STATUSES,
+  normalizeProcurementStatus,
   convertFileToBase64 
 } from '../../services/procurementService';
 
@@ -62,7 +64,7 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
   const [targetUnitPrice, setTargetUnitPrice] = useState<string>('');
   const [currency, setCurrency] = useState('SAR');
   const [priority, setPriority] = useState<ProcurementPriority>('MEDIUM');
-  const [status, setStatus] = useState<ProcurementStatus>('NEW_ENQUIRY');
+  const [status, setStatus] = useState<ProcurementStatus>('PENDING_POS');
   const [requestedBy, setRequestedBy] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [projectReference, setProjectReference] = useState('');
@@ -96,7 +98,7 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
       setTargetUnitPrice(initialItem.targetUnitPrice !== undefined ? String(initialItem.targetUnitPrice) : '');
       setCurrency(initialItem.currency || 'SAR');
       setPriority(initialItem.priority || 'MEDIUM');
-      setStatus(initialItem.status || 'NEW_ENQUIRY');
+      setStatus(initialItem.status ? normalizeProcurementStatus(initialItem.status) : 'PENDING_POS');
       setRequestedBy(initialItem.requestedBy || '');
       setAssignedTo(initialItem.assignedTo || '');
       setProjectReference(initialItem.projectReference || '');
@@ -120,7 +122,7 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
     setTargetUnitPrice('');
     setCurrency('SAR');
     setPriority('MEDIUM');
-    setStatus('NEW_ENQUIRY');
+    setStatus('PENDING_POS');
     setRequestedBy('');
     setAssignedTo('');
     setProjectReference('');
@@ -509,7 +511,7 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
                   onChange={(e) => setStatus(e.target.value as ProcurementStatus)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
-                  {(Object.keys(PROCUREMENT_STATUS_CONFIG) as ProcurementStatus[]).map((s) => (
+                  {ACTIVE_PROCUREMENT_STATUSES.map((s) => (
                     <option key={s} value={s}>
                       {PROCUREMENT_STATUS_CONFIG[s].label}
                     </option>

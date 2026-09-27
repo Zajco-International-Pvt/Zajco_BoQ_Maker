@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { 
   generateEnquiryReference, 
   PROCUREMENT_STATUS_CONFIG, 
-  PROCUREMENT_PRIORITY_CONFIG 
+  PROCUREMENT_PRIORITY_CONFIG,
+  ACTIVE_PROCUREMENT_STATUSES,
+  normalizeProcurementStatus,
+  matchProcurementStatus
 } from '../services/procurementService';
 import type { ProcurementStatus, ProcurementPriority, ProcurementItem, VendorQuotationEntry } from '../types';
 
@@ -21,18 +24,21 @@ describe('Procurement Service & Module Helpers', () => {
     expect(ref1).toContain(`ENQ-${yy}${mm}-`);
   });
 
-  it('should configure valid lifecycle definitions for all procurement statuses', () => {
+  it('should configure valid lifecycle definitions for all 10 procurement statuses', () => {
     const expectedStatuses: ProcurementStatus[] = [
-      'NEW_ENQUIRY',
-      'RFQ_SENT',
-      'QUOTATION_IN_PROGRESS',
-      'QUOTATION_RECEIVED',
-      'UNDER_EVALUATION',
-      'PO_ISSUED',
-      'DELIVERED',
-      'CLOSED',
-      'CANCELLED'
+      'PURCHASES_POS_COMPLETED',
+      'PENDING_POS',
+      'URGENTLY_REQUIRED_MATERIALS',
+      'SUPPLIER_DELAYS',
+      'PRICE_SUPPLIER_ISSUES',
+      'EXPECTED_DELIVERIES',
+      'MATERIAL_SHORTAGES',
+      'SUPPLIER_PAYMENT_ISSUES',
+      'CRITICAL_STOCK_REQUIREMENTS',
+      'CHAIRMAN_APPROVAL_REQUIRED'
     ];
+
+    expect(ACTIVE_PROCUREMENT_STATUSES).toEqual(expectedStatuses);
 
     expectedStatuses.forEach(status => {
       const config = PROCUREMENT_STATUS_CONFIG[status];
@@ -42,9 +48,17 @@ describe('Procurement Service & Module Helpers', () => {
       expect(config.textClass).toBeTruthy();
     });
 
-    // Specifically verify requested statuses
-    expect(PROCUREMENT_STATUS_CONFIG.QUOTATION_IN_PROGRESS.label).toBe('In Quotation (Vendor)');
-    expect(PROCUREMENT_STATUS_CONFIG.CLOSED.label).toBe('Closed');
+    // Specifically verify all requested status labels
+    expect(PROCUREMENT_STATUS_CONFIG.PURCHASES_POS_COMPLETED.label).toBe('Purchases/POs completed');
+    expect(PROCUREMENT_STATUS_CONFIG.PENDING_POS.label).toBe('Pending purchase orders');
+    expect(PROCUREMENT_STATUS_CONFIG.URGENTLY_REQUIRED_MATERIALS.label).toBe('Urgently required materials');
+    expect(PROCUREMENT_STATUS_CONFIG.SUPPLIER_DELAYS.label).toBe('Supplier delays');
+    expect(PROCUREMENT_STATUS_CONFIG.PRICE_SUPPLIER_ISSUES.label).toBe('Price/supplier issues');
+    expect(PROCUREMENT_STATUS_CONFIG.EXPECTED_DELIVERIES.label).toBe('Expected deliveries');
+    expect(PROCUREMENT_STATUS_CONFIG.MATERIAL_SHORTAGES.label).toBe('Material shortages affecting projects');
+    expect(PROCUREMENT_STATUS_CONFIG.SUPPLIER_PAYMENT_ISSUES.label).toBe('Supplier payment issues');
+    expect(PROCUREMENT_STATUS_CONFIG.CRITICAL_STOCK_REQUIREMENTS.label).toBe('Critical stock requirements');
+    expect(PROCUREMENT_STATUS_CONFIG.CHAIRMAN_APPROVAL_REQUIRED.label).toBe('Chairman approval required');
   });
 
   it('should configure priority styling for all priorities', () => {
@@ -87,7 +101,7 @@ describe('Procurement Service & Module Helpers', () => {
       targetUnitPrice: 1200,
       currency: 'SAR',
       priority: 'HIGH',
-      status: 'QUOTATION_IN_PROGRESS',
+      status: 'PENDING_POS',
       requestedBy: 'Site Engineer',
       assignedTo: 'Procurement Buyer',
       projectReference: 'Riyadh Hospital',
@@ -102,7 +116,7 @@ describe('Procurement Service & Module Helpers', () => {
     };
 
     expect(item.id).toBe('test_proc_1');
-    expect(item.status).toBe('QUOTATION_IN_PROGRESS');
+    expect(item.status).toBe('PENDING_POS');
     expect(item.referenceNumber).toBe('ENQ-2609-1234');
     expect(item.vendorQuotes).toHaveLength(0);
   });
@@ -148,7 +162,7 @@ describe('Procurement Service & Module Helpers', () => {
       unit: 'pcs',
       currency: 'SAR',
       priority: 'HIGH',
-      status: 'NEW_ENQUIRY',
+      status: 'PENDING_POS',
       vendorQuotes: [],
       activityLog: [],
       createdBy: 'admin_1',
@@ -159,6 +173,22 @@ describe('Procurement Service & Module Helpers', () => {
     expect(itemWithImages.images).toBeDefined();
     expect(itemWithImages.images).toHaveLength(1);
     expect(itemWithImages.images![0]).toMatch(/^data:image\/[a-zA-Z]+;base64,/);
+  });
+
+  it('should normalize legacy statuses and match raw text into valid active procurement statuses', () => {
+    expect(normalizeProcurementStatus('NEW_ENQUIRY')).toBe('PENDING_POS');
+    expect(normalizeProcurementStatus('PO_ISSUED')).toBe('PENDING_POS');
+    expect(normalizeProcurementStatus('DELIVERED')).toBe('PURCHASES_POS_COMPLETED');
+    expect(normalizeProcurementStatus('CLOSED')).toBe('PURCHASES_POS_COMPLETED');
+    expect(normalizeProcurementStatus('QUOTATION_RECEIVED')).toBe('PRICE_SUPPLIER_ISSUES');
+
+    expect(matchProcurementStatus('Purchase Order Completed')).toBe('PURCHASES_POS_COMPLETED');
+    expect(matchProcurementStatus('Supplier Delay on Shipment')).toBe('SUPPLIER_DELAYS');
+    expect(matchProcurementStatus('Needs Chairman Approval')).toBe('CHAIRMAN_APPROVAL_REQUIRED');
+    expect(matchProcurementStatus('Critical Stock Requirement')).toBe('CRITICAL_STOCK_REQUIREMENTS');
+    expect(matchProcurementStatus('Material Shortage On Site')).toBe('MATERIAL_SHORTAGES');
+    expect(matchProcurementStatus('Supplier Payment Pending')).toBe('SUPPLIER_PAYMENT_ISSUES');
+    expect(matchProcurementStatus('Expected Delivery next week')).toBe('EXPECTED_DELIVERIES');
   });
 
   it('should reject non-image files in convertFileToBase64', async () => {

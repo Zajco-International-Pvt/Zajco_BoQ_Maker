@@ -7,7 +7,6 @@ import {
   Send, 
   Plus, 
   Trash2, 
-  Check, 
   Building2, 
   MessageSquare, 
   Edit3, 
@@ -27,7 +26,8 @@ import {
   PROCUREMENT_PRIORITY_CONFIG,
   updateProcurementStatus,
   saveVendorQuotation,
-  deleteVendorQuotation
+  deleteVendorQuotation,
+  getProcurementStatusConfig
 } from '../../services/procurementService';
 
 interface ProcurementDetailsModalProps {
@@ -40,14 +40,16 @@ interface ProcurementDetailsModalProps {
 }
 
 const LIFECYCLE_STEPS: ProcurementStatus[] = [
-  'NEW_ENQUIRY',
-  'RFQ_SENT',
-  'QUOTATION_IN_PROGRESS',
-  'QUOTATION_RECEIVED',
-  'UNDER_EVALUATION',
-  'PO_ISSUED',
-  'DELIVERED',
-  'CLOSED'
+  'PURCHASES_POS_COMPLETED',
+  'PENDING_POS',
+  'URGENTLY_REQUIRED_MATERIALS',
+  'SUPPLIER_DELAYS',
+  'PRICE_SUPPLIER_ISSUES',
+  'EXPECTED_DELIVERIES',
+  'MATERIAL_SHORTAGES',
+  'SUPPLIER_PAYMENT_ISSUES',
+  'CRITICAL_STOCK_REQUIREMENTS',
+  'CHAIRMAN_APPROVAL_REQUIRED'
 ];
 
 export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = ({
@@ -81,9 +83,8 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
 
   if (!isOpen) return null;
 
-  const currentStatusConfig = PROCUREMENT_STATUS_CONFIG[item.status] || PROCUREMENT_STATUS_CONFIG.NEW_ENQUIRY;
+  const currentStatusConfig = getProcurementStatusConfig(item.status);
   const currentPriorityConfig = PROCUREMENT_PRIORITY_CONFIG[item.priority] || PROCUREMENT_PRIORITY_CONFIG.MEDIUM;
-  const currentStepIndex = LIFECYCLE_STEPS.indexOf(item.status);
 
   // Handle Quick Status Advance / Change
   const handleStatusChange = async (newStatus: ProcurementStatus) => {
@@ -92,7 +93,7 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
       await updateProcurementStatus(
         item.id,
         newStatus,
-        statusNote || `Transitioned to ${PROCUREMENT_STATUS_CONFIG[newStatus].label}`,
+        statusNote || `Transitioned to ${getProcurementStatusConfig(newStatus).label}`,
         currentUser
       );
       setStatusNote('');
@@ -240,41 +241,38 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
 
         {/* Lifecycle Visual Stepper */}
         <div className="bg-slate-950 p-3 sm:p-4 border-b border-slate-800 overflow-x-auto flex-shrink-0">
-          <div className="min-w-[650px]">
+          <div className="min-w-[700px]">
             <div className="flex items-center justify-between text-[11px] font-medium text-slate-400 mb-2">
-              <span className="text-xs font-bold text-slate-300">Procurement Progress Pipeline</span>
+              <span className="text-xs font-bold text-slate-300">Procurement Stage Pipeline</span>
               <span>{currentStatusConfig.description}</span>
             </div>
 
-            <div className="grid grid-cols-8 gap-1 relative">
+            <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-1.5 relative">
               {LIFECYCLE_STEPS.map((stepKey, idx) => {
                 const conf = PROCUREMENT_STATUS_CONFIG[stepKey];
-                const isPassed = currentStepIndex >= 0 && idx <= currentStepIndex;
                 const isCurrent = item.status === stepKey;
 
                 return (
                   <button
                     key={stepKey}
                     onClick={() => handleStatusChange(stepKey)}
-                    title={`Click to set stage to ${conf.label}`}
+                    title={`Click to switch stage to: ${conf.label}`}
                     disabled={isUpdatingStatus}
                     className={`group text-left p-1.5 sm:p-2 rounded-xl border transition-all text-[10px] leading-tight flex flex-col justify-between ${
                       isCurrent
-                        ? 'bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-600/30'
-                        : isPassed
-                        ? 'bg-slate-900 border-emerald-500/40 text-emerald-400 hover:border-emerald-400'
-                        : 'bg-slate-900/60 border-slate-800/80 text-slate-500 hover:border-slate-700 hover:text-slate-300'
+                        ? `${conf.bgClass} ${conf.textClass} ${conf.borderClass} ring-1 ring-white/30 shadow-md`
+                        : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-white'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-mono font-bold text-[9px] opacity-70">0{idx + 1}</span>
-                      {isPassed && !isCurrent ? (
-                        <Check className="w-3 h-3 text-emerald-400" />
-                      ) : isCurrent ? (
-                        <div className="w-2 h-2 rounded-full bg-white animate-ping" />
+                      <span className="font-mono font-bold text-[9px] opacity-70">
+                        {idx < 9 ? `0${idx + 1}` : idx + 1}
+                      </span>
+                      {isCurrent ? (
+                        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                       ) : null}
                     </div>
-                    <span className="font-semibold truncate">{conf.label}</span>
+                    <span className="font-semibold line-clamp-2 leading-tight">{conf.label}</span>
                   </button>
                 );
               })}

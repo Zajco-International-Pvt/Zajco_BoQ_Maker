@@ -13,82 +13,258 @@ import type {
 } from '../types';
 import { logAuditEvent } from './auditService';
 
+export const ACTIVE_PROCUREMENT_STATUSES: ProcurementStatus[] = [
+  'PURCHASES_POS_COMPLETED',
+  'PENDING_POS',
+  'URGENTLY_REQUIRED_MATERIALS',
+  'SUPPLIER_DELAYS',
+  'PRICE_SUPPLIER_ISSUES',
+  'EXPECTED_DELIVERIES',
+  'MATERIAL_SHORTAGES',
+  'SUPPLIER_PAYMENT_ISSUES',
+  'CRITICAL_STOCK_REQUIREMENTS',
+  'CHAIRMAN_APPROVAL_REQUIRED'
+];
+
 export const PROCUREMENT_STATUS_CONFIG: Record<
   ProcurementStatus,
   { label: string; bgClass: string; textClass: string; borderClass: string; description: string; step: number }
 > = {
-  NEW_ENQUIRY: {
-    label: 'New Enquiry',
-    bgClass: 'bg-blue-500/10',
-    textClass: 'text-blue-400',
-    borderClass: 'border-blue-500/30',
-    description: 'Enquiry created and specifications logged',
-    step: 1
-  },
-  RFQ_SENT: {
-    label: 'RFQ Sent',
-    bgClass: 'bg-indigo-500/10',
-    textClass: 'text-indigo-400',
-    borderClass: 'border-indigo-500/30',
-    description: 'Request for Quotation issued to vendor(s)',
-    step: 2
-  },
-  QUOTATION_IN_PROGRESS: {
-    label: 'In Quotation (Vendor)',
-    bgClass: 'bg-amber-500/10',
-    textClass: 'text-amber-400',
-    borderClass: 'border-amber-500/30',
-    description: 'Vendor is preparing quotation / pricing',
-    step: 3
-  },
-  QUOTATION_RECEIVED: {
-    label: 'Quote Received',
-    bgClass: 'bg-cyan-500/10',
-    textClass: 'text-cyan-400',
-    borderClass: 'border-cyan-500/30',
-    description: 'Vendor quotation received and logged',
-    step: 4
-  },
-  UNDER_EVALUATION: {
-    label: 'Under Evaluation',
-    bgClass: 'bg-purple-500/10',
-    textClass: 'text-purple-400',
-    borderClass: 'border-purple-500/30',
-    description: 'Technical & commercial price comparison',
-    step: 5
-  },
-  PO_ISSUED: {
-    label: 'PO Issued',
-    bgClass: 'bg-teal-500/10',
-    textClass: 'text-teal-400',
-    borderClass: 'border-teal-500/30',
-    description: 'Purchase Order issued to selected vendor',
-    step: 6
-  },
-  DELIVERED: {
-    label: 'Delivered',
+  PURCHASES_POS_COMPLETED: {
+    label: 'Purchases/POs completed',
     bgClass: 'bg-emerald-500/10',
     textClass: 'text-emerald-400',
     borderClass: 'border-emerald-500/30',
-    description: 'Materials delivered and verified on site',
-    step: 7
+    description: 'Purchases and Purchase Orders completed and fulfilled',
+    step: 1
   },
-  CLOSED: {
-    label: 'Closed',
-    bgClass: 'bg-slate-500/10',
-    textClass: 'text-emerald-300',
-    borderClass: 'border-emerald-500/40',
-    description: 'Procurement complete and closed',
-    step: 8
+  PENDING_POS: {
+    label: 'Pending purchase orders',
+    bgClass: 'bg-amber-500/10',
+    textClass: 'text-amber-400',
+    borderClass: 'border-amber-500/30',
+    description: 'Purchase orders drafted or awaiting supplier issuance',
+    step: 2
   },
-  CANCELLED: {
-    label: 'Cancelled',
+  URGENTLY_REQUIRED_MATERIALS: {
+    label: 'Urgently required materials',
     bgClass: 'bg-rose-500/10',
     textClass: 'text-rose-400',
     borderClass: 'border-rose-500/30',
-    description: 'Enquiry dropped or cancelled',
+    description: 'Critical materials needed urgently for project execution',
+    step: 3
+  },
+  SUPPLIER_DELAYS: {
+    label: 'Supplier delays',
+    bgClass: 'bg-orange-500/10',
+    textClass: 'text-orange-400',
+    borderClass: 'border-orange-500/30',
+    description: 'Manufacturing or dispatch delays communicated by supplier',
+    step: 4
+  },
+  PRICE_SUPPLIER_ISSUES: {
+    label: 'Price/supplier issues',
+    bgClass: 'bg-purple-500/10',
+    textClass: 'text-purple-400',
+    borderClass: 'border-purple-500/30',
+    description: 'Price disputes, quote discrepancies, or vendor issues',
+    step: 5
+  },
+  EXPECTED_DELIVERIES: {
+    label: 'Expected deliveries',
+    bgClass: 'bg-cyan-500/10',
+    textClass: 'text-cyan-400',
+    borderClass: 'border-cyan-500/30',
+    description: 'Orders dispatched and expected for site delivery',
+    step: 6
+  },
+  MATERIAL_SHORTAGES: {
+    label: 'Material shortages affecting projects',
+    bgClass: 'bg-red-500/10',
+    textClass: 'text-red-400',
+    borderClass: 'border-red-500/30',
+    description: 'Shortages currently impacting active project timelines',
+    step: 7
+  },
+  SUPPLIER_PAYMENT_ISSUES: {
+    label: 'Supplier payment issues',
+    bgClass: 'bg-yellow-500/10',
+    textClass: 'text-yellow-400',
+    borderClass: 'border-yellow-500/30',
+    description: 'Payment terms, invoice approvals, or accounts clearance pending',
+    step: 8
+  },
+  CRITICAL_STOCK_REQUIREMENTS: {
+    label: 'Critical stock requirements',
+    bgClass: 'bg-fuchsia-500/10',
+    textClass: 'text-fuchsia-400',
+    borderClass: 'border-fuchsia-500/30',
+    description: 'Stock level below safety threshold requiring replenishment',
+    step: 9
+  },
+  CHAIRMAN_APPROVAL_REQUIRED: {
+    label: 'Chairman approval required',
+    bgClass: 'bg-indigo-500/10',
+    textClass: 'text-indigo-400',
+    borderClass: 'border-indigo-500/30',
+    description: 'High value or strategic order requiring Chairman sanction',
+    step: 10
+  },
+  // Legacy / fallback mappings for backward compatibility
+  NEW_ENQUIRY: {
+    label: 'Pending purchase orders',
+    bgClass: 'bg-amber-500/10',
+    textClass: 'text-amber-400',
+    borderClass: 'border-amber-500/30',
+    description: 'Pending purchase orders',
+    step: 2
+  },
+  RFQ_SENT: {
+    label: 'Pending purchase orders',
+    bgClass: 'bg-amber-500/10',
+    textClass: 'text-amber-400',
+    borderClass: 'border-amber-500/30',
+    description: 'Pending purchase orders',
+    step: 2
+  },
+  QUOTATION_IN_PROGRESS: {
+    label: 'Pending purchase orders',
+    bgClass: 'bg-amber-500/10',
+    textClass: 'text-amber-400',
+    borderClass: 'border-amber-500/30',
+    description: 'Pending purchase orders',
+    step: 2
+  },
+  QUOTATION_RECEIVED: {
+    label: 'Price/supplier issues',
+    bgClass: 'bg-purple-500/10',
+    textClass: 'text-purple-400',
+    borderClass: 'border-purple-500/30',
+    description: 'Price/supplier issues',
+    step: 5
+  },
+  UNDER_EVALUATION: {
+    label: 'Price/supplier issues',
+    bgClass: 'bg-purple-500/10',
+    textClass: 'text-purple-400',
+    borderClass: 'border-purple-500/30',
+    description: 'Price/supplier issues',
+    step: 5
+  },
+  PO_ISSUED: {
+    label: 'Pending purchase orders',
+    bgClass: 'bg-amber-500/10',
+    textClass: 'text-amber-400',
+    borderClass: 'border-amber-500/30',
+    description: 'Pending purchase orders',
+    step: 2
+  },
+  DELIVERED: {
+    label: 'Purchases/POs completed',
+    bgClass: 'bg-emerald-500/10',
+    textClass: 'text-emerald-400',
+    borderClass: 'border-emerald-500/30',
+    description: 'Purchases/POs completed',
+    step: 1
+  },
+  CLOSED: {
+    label: 'Purchases/POs completed',
+    bgClass: 'bg-emerald-500/10',
+    textClass: 'text-emerald-400',
+    borderClass: 'border-emerald-500/30',
+    description: 'Purchases/POs completed',
+    step: 1
+  },
+  CANCELLED: {
+    label: 'Purchases/POs completed',
+    bgClass: 'bg-slate-500/10',
+    textClass: 'text-slate-400',
+    borderClass: 'border-slate-500/30',
+    description: 'Cancelled / completed',
     step: 0
   }
+};
+
+/**
+ * Normalizes any status string (including legacy ones) to the active 10 statuses
+ */
+export const normalizeProcurementStatus = (rawStatus: any): ProcurementStatus => {
+  if (!rawStatus) return 'PENDING_POS';
+  const str = String(rawStatus).trim();
+
+  if (ACTIVE_PROCUREMENT_STATUSES.includes(str as ProcurementStatus)) {
+    return str as ProcurementStatus;
+  }
+
+  // Exact or label match
+  const match = ACTIVE_PROCUREMENT_STATUSES.find(
+    s => s.toLowerCase() === str.toLowerCase() ||
+         PROCUREMENT_STATUS_CONFIG[s].label.toLowerCase() === str.toLowerCase()
+  );
+  if (match) return match;
+
+  // Legacy status conversion
+  const upper = str.toUpperCase();
+  if (upper === 'DELIVERED' || upper === 'CLOSED' || upper === 'CANCELLED' || upper === 'PURCHASES_POS_COMPLETED') {
+    return 'PURCHASES_POS_COMPLETED';
+  }
+  if (upper === 'NEW_ENQUIRY' || upper === 'RFQ_SENT' || upper === 'QUOTATION_IN_PROGRESS' || upper === 'PO_ISSUED') {
+    return 'PENDING_POS';
+  }
+  if (upper === 'QUOTATION_RECEIVED' || upper === 'UNDER_EVALUATION') {
+    return 'PRICE_SUPPLIER_ISSUES';
+  }
+
+  return 'PENDING_POS';
+};
+
+/**
+ * Safely fetches the status configuration for any status value
+ */
+export const getProcurementStatusConfig = (status: any) => {
+  const norm = normalizeProcurementStatus(status);
+  return PROCUREMENT_STATUS_CONFIG[norm] || PROCUREMENT_STATUS_CONFIG.PENDING_POS;
+};
+
+/**
+ * Fuzzy matches text from Excel columns or user input to one of the 10 statuses
+ */
+export const matchProcurementStatus = (rawText: string): ProcurementStatus | null => {
+  if (!rawText) return null;
+  const t = rawText.toLowerCase().trim();
+
+  // Check specific issue/action keywords first
+  if (t.includes('chairman') || t.includes('approval required') || t.includes('board approval')) {
+    return 'CHAIRMAN_APPROVAL_REQUIRED';
+  }
+  if (t.includes('payment') || t.includes('supplier payment') || t.includes('invoice issue')) {
+    return 'SUPPLIER_PAYMENT_ISSUES';
+  }
+  if (t.includes('shortage') || t.includes('affecting project') || t.includes('material shortage')) {
+    return 'MATERIAL_SHORTAGES';
+  }
+  if (t.includes('critical stock') || t.includes('stock requirement') || t.includes('low stock')) {
+    return 'CRITICAL_STOCK_REQUIREMENTS';
+  }
+  if (t.includes('urgently') || t.includes('urgent material') || t.includes('urgent required')) {
+    return 'URGENTLY_REQUIRED_MATERIALS';
+  }
+  if (t.includes('supplier delay') || t.includes('delay') || t.includes('delayed')) {
+    return 'SUPPLIER_DELAYS';
+  }
+  if (t.includes('price') || t.includes('rate issue') || t.includes('price issue') || t.includes('supplier issue')) {
+    return 'PRICE_SUPPLIER_ISSUES';
+  }
+  if (t.includes('expected') || t.includes('transit') || t.includes('delivery expected') || t.includes('expected delivery') || t.includes('deliveries')) {
+    return 'EXPECTED_DELIVERIES';
+  }
+  if (t.includes('completed') || t.includes('purchase order completed') || t.includes('po completed') || t.includes('pos completed')) {
+    return 'PURCHASES_POS_COMPLETED';
+  }
+  if (t.includes('pending') || t.includes('draft') || t.includes('po pending') || t.includes('pending po')) {
+    return 'PENDING_POS';
+  }
+  return null;
 };
 
 export const PROCUREMENT_PRIORITY_CONFIG: Record<
@@ -255,7 +431,7 @@ export const getProcurementItems = async (): Promise<ProcurementItem[]> => {
         targetUnitPrice: data.targetUnitPrice ? Number(data.targetUnitPrice) : undefined,
         currency: data.currency || 'SAR',
         priority: (data.priority as ProcurementPriority) || 'MEDIUM',
-        status: (data.status as ProcurementStatus) || 'NEW_ENQUIRY',
+        status: normalizeProcurementStatus(data.status),
         requestedBy: data.requestedBy || '',
         assignedTo: data.assignedTo || '',
         projectReference: data.projectReference || '',
@@ -336,13 +512,14 @@ export const saveProcurementItem = async (
     const newRef = doc(collection(db, 'procurementItems'));
     const refNumber = itemData.referenceNumber || generateEnquiryReference();
 
+    const initialStatus = normalizeProcurementStatus(itemData.status);
     const activityEntry: ProcurementActivityLog = {
       id: `act_${Date.now()}`,
       timestamp: now,
       authorName: user.name || user.email,
       authorEmail: user.email,
       action: 'ENQUIRY_CREATED',
-      note: `Enquiry logged with status: ${PROCUREMENT_STATUS_CONFIG[itemData.status || 'NEW_ENQUIRY'].label}`
+      note: `Enquiry logged with status: ${getProcurementStatusConfig(initialStatus).label}`
     };
 
     const newPayload: ProcurementItem = {
@@ -359,7 +536,7 @@ export const saveProcurementItem = async (
       targetUnitPrice: itemData.targetUnitPrice ? Number(itemData.targetUnitPrice) : undefined,
       currency: itemData.currency || 'SAR',
       priority: itemData.priority || 'MEDIUM',
-      status: itemData.status || 'NEW_ENQUIRY',
+      status: initialStatus,
       requestedBy: itemData.requestedBy || user.name || '',
       assignedTo: itemData.assignedTo || '',
       projectReference: itemData.projectReference || '',
@@ -404,18 +581,19 @@ export const updateProcurementStatus = async (
 ): Promise<void> => {
   const now = new Date().toISOString();
   const docRef = doc(db, 'procurementItems', itemId);
+  const normStatus = normalizeProcurementStatus(newStatus);
 
   const activityEntry: ProcurementActivityLog = {
     id: `act_${Date.now()}`,
     timestamp: now,
     authorName: user.name || user.email,
     authorEmail: user.email,
-    action: `STATUS_CHANGED_${newStatus}`,
-    note: note || `Status changed to ${PROCUREMENT_STATUS_CONFIG[newStatus].label}`
+    action: `STATUS_CHANGED_${normStatus}`,
+    note: note || `Status changed to ${getProcurementStatusConfig(normStatus).label}`
   };
 
   await updateDoc(docRef, {
-    status: newStatus,
+    status: normStatus,
     updatedAt: now,
     activityLog: arrayUnion(activityEntry)
   });
@@ -425,7 +603,7 @@ export const updateProcurementStatus = async (
     user.name,
     user.email,
     'UPDATE_PROCUREMENT_STATUS',
-    `Updated status of item ${itemId} to ${newStatus}. Note: ${note || 'None'}`
+    `Updated status of item ${itemId} to ${normStatus}. Note: ${note || 'None'}`
   );
 };
 
@@ -459,11 +637,8 @@ export const saveVendorQuotation = async (
     quotes.push(quoteEntry);
   }
 
-  // If item was in RFQ or NEW, automatically advance to QUOTATION_RECEIVED
-  let newStatus = data.status;
-  if (data.status === 'NEW_ENQUIRY' || data.status === 'RFQ_SENT' || data.status === 'QUOTATION_IN_PROGRESS') {
-    newStatus = 'QUOTATION_RECEIVED';
-  }
+  // Preserve normalized status
+  const newStatus = normalizeProcurementStatus(data.status);
 
   const activityEntry: ProcurementActivityLog = {
     id: `act_${Date.now()}`,
@@ -625,6 +800,7 @@ export interface ProcurementExcelColumnMapping {
   targetUnitPrice: string;
   currency: string;
   priority: string;
+  status?: string;
   projectReference: string;
   requestedBy: string;
   expectedDate: string;
@@ -777,6 +953,9 @@ export const extractProcurementSheetRows = (
     priority: findBestColumn(headers, [
       'priority', 'urgency'
     ]),
+    status: findBestColumn(headers, [
+      'status', 'stage', 'procurement stage', 'procurement status', 'state', 'current status'
+    ]),
     projectReference: findBestColumn(headers, [
       'project', 'project name', 'project ref', 'site', 'client'
     ]),
@@ -814,13 +993,14 @@ export const batchImportProcurementItems = async (
     const refNumber = item.referenceNumber || generateEnquiryReference();
     generatedRefs.push(refNumber);
 
+    const itemStatus = normalizeProcurementStatus(item.status);
     const activityEntry: ProcurementActivityLog = {
       id: `act_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       timestamp: now,
       authorName: user.name || user.email,
       authorEmail: user.email,
       action: 'BATCH_IMPORTED_FROM_EXCEL',
-      note: `Imported via Excel sheet with status: ${PROCUREMENT_STATUS_CONFIG[item.status || 'NEW_ENQUIRY'].label}`
+      note: `Imported via Excel sheet with status: ${getProcurementStatusConfig(itemStatus).label}`
     };
 
     const payload: ProcurementItem = {
@@ -836,7 +1016,7 @@ export const batchImportProcurementItems = async (
       targetUnitPrice: item.targetUnitPrice ? Number(item.targetUnitPrice) : undefined,
       currency: item.currency || 'SAR',
       priority: item.priority || 'MEDIUM',
-      status: item.status || 'NEW_ENQUIRY',
+      status: itemStatus,
       requestedBy: item.requestedBy || user.name || '',
       assignedTo: item.assignedTo || '',
       projectReference: item.projectReference || '',

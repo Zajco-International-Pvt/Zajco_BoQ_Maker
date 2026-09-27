@@ -23,7 +23,10 @@ import {
   extractProcurementSheetRows, 
   batchImportProcurementItems, 
   downloadProcurementExcelTemplate,
+  PROCUREMENT_STATUS_CONFIG,
   PROCUREMENT_PRIORITY_CONFIG,
+  ACTIVE_PROCUREMENT_STATUSES,
+  matchProcurementStatus,
   type ProcurementExcelColumnMapping 
 } from '../../services/procurementService';
 
@@ -59,6 +62,7 @@ export const ProcurementExcelImportModal: React.FC<ProcurementExcelImportModalPr
     targetUnitPrice: '',
     currency: '',
     priority: '',
+    status: '',
     projectReference: '',
     requestedBy: '',
     expectedDate: '',
@@ -69,7 +73,7 @@ export const ProcurementExcelImportModal: React.FC<ProcurementExcelImportModalPr
   const [defaultCategory, setDefaultCategory] = useState<string>('General Materials');
   const [defaultCurrency, setDefaultCurrency] = useState<string>('SAR');
   const [defaultPriority, setDefaultPriority] = useState<ProcurementPriority>('MEDIUM');
-  const [defaultStatus, setDefaultStatus] = useState<ProcurementStatus>('QUOTATION_IN_PROGRESS');
+  const [defaultStatus, setDefaultStatus] = useState<ProcurementStatus>('PENDING_POS');
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -186,6 +190,12 @@ export const ProcurementExcelImportModal: React.FC<ProcurementExcelImportModalPr
 
       const notes = mapping.notes ? String(row[mapping.notes] || '').trim() : '';
 
+      let itemStatus = defaultStatus;
+      if (mapping.status && row[mapping.status]) {
+        const matched = matchProcurementStatus(String(row[mapping.status]));
+        if (matched) itemStatus = matched;
+      }
+
       return {
         itemName,
         category,
@@ -197,7 +207,7 @@ export const ProcurementExcelImportModal: React.FC<ProcurementExcelImportModalPr
         targetUnitPrice: targetPrice,
         currency,
         priority,
-        status: defaultStatus,
+        status: itemStatus,
         projectReference,
         requestedBy,
         expectedDate,
@@ -577,6 +587,21 @@ export const ProcurementExcelImportModal: React.FC<ProcurementExcelImportModalPr
                     ))}
                   </select>
                 </div>
+
+                {/* Status Column (Optional) */}
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Status / Stage Column (Optional)</label>
+                  <select
+                    value={mapping.status || ''}
+                    onChange={(e) => setMapping({ ...mapping, status: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-blue-500"
+                  >
+                    <option value="">-- Use Fallback Below --</option>
+                    {headers.map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Default Fallbacks Section */}
@@ -629,9 +654,9 @@ export const ProcurementExcelImportModal: React.FC<ProcurementExcelImportModalPr
                       onChange={(e) => setDefaultStatus(e.target.value as ProcurementStatus)}
                       className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-white"
                     >
-                      <option value="NEW_ENQUIRY">New Enquiry</option>
-                      <option value="QUOTATION_IN_PROGRESS">In Quotation (Vendor)</option>
-                      <option value="RFQ_SENT">RFQ Sent</option>
+                      {ACTIVE_PROCUREMENT_STATUSES.map((s) => (
+                        <option key={s} value={s}>{PROCUREMENT_STATUS_CONFIG[s].label}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
