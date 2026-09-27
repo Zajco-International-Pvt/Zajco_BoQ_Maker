@@ -1,20 +1,20 @@
 import { db } from '../config/firebase';
-import { 
-  collection, doc, getDocs, setDoc, deleteDoc, getDoc, updateDoc, arrayUnion 
+import {
+  collection, doc, getDocs, setDoc, deleteDoc, getDoc, updateDoc, arrayUnion
 } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
-import type { 
-  ProcurementItem, 
-  ProcurementStatus, 
-  ProcurementPriority, 
-  VendorQuotationEntry, 
-  ProcurementActivityLog, 
-  UserProfile 
+import type {
+  ProcurementItem,
+  ProcurementStatus,
+  ProcurementPriority,
+  VendorQuotationEntry,
+  ProcurementActivityLog,
+  UserProfile
 } from '../types';
 import { logAuditEvent } from './auditService';
 
 export const PROCUREMENT_STATUS_CONFIG: Record<
-  ProcurementStatus, 
+  ProcurementStatus,
   { label: string; bgClass: string; textClass: string; borderClass: string; description: string; step: number }
 > = {
   NEW_ENQUIRY: {
@@ -92,7 +92,7 @@ export const PROCUREMENT_STATUS_CONFIG: Record<
 };
 
 export const PROCUREMENT_PRIORITY_CONFIG: Record<
-  ProcurementPriority, 
+  ProcurementPriority,
   { label: string; bgClass: string; textClass: string; badge: string }
 > = {
   LOW: {
@@ -208,7 +208,7 @@ const getCachedProcurementItems = (): ProcurementItem[] => {
 const setCachedProcurementItems = (items: ProcurementItem[]): void => {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(items));
-  } catch {}
+  } catch { }
 };
 
 const saveItemToLocalCache = (item: ProcurementItem): void => {
@@ -221,14 +221,14 @@ const saveItemToLocalCache = (item: ProcurementItem): void => {
       current.unshift(item);
     }
     setCachedProcurementItems(current);
-  } catch {}
+  } catch { }
 };
 
 const removeItemFromLocalCache = (id: string): void => {
   try {
     const current = getCachedProcurementItems().filter(i => i.id !== id);
     setCachedProcurementItems(current);
-  } catch {}
+  } catch { }
 };
 
 /**
@@ -322,7 +322,7 @@ export const saveProcurementItem = async (
         user.email,
         'UPDATE_PROCUREMENT_ITEM',
         `Updated procurement item ${itemData.referenceNumber || itemData.id} (${itemData.itemName})`
-      ).catch(() => {});
+      ).catch(() => { });
       lastProcurementError = null;
     } catch (err: any) {
       console.warn('saveProcurementItem Firestore notice (caching locally):', err?.message || err);
@@ -381,7 +381,7 @@ export const saveProcurementItem = async (
         user.email,
         'CREATE_PROCUREMENT_ITEM',
         `Created new procurement item enquiry ${refNumber} (${newPayload.itemName})`
-      ).catch(() => {});
+      ).catch(() => { });
       lastProcurementError = null;
     } catch (err: any) {
       console.warn('saveProcurementItem Firestore notice (caching locally):', err?.message || err);
@@ -538,7 +538,7 @@ export const deleteProcurementItem = async (
       user.email,
       'DELETE_PROCUREMENT_ITEM',
       `Deleted procurement item ${itemId}`
-    ).catch(() => {});
+    ).catch(() => { });
   } catch (err: any) {
     console.warn('deleteProcurementItem Firestore notice:', err?.message || err);
   }
@@ -699,12 +699,12 @@ export const extractProcurementSheetRows = (
   for (let i = 0; i < Math.min(25, rawData.length); i++) {
     const rowStr = JSON.stringify(rawData[i]).toLowerCase();
     if (
-      rowStr.includes('item') || 
-      rowStr.includes('description') || 
-      rowStr.includes('qty') || 
-      rowStr.includes('quantity') || 
-      rowStr.includes('brand') || 
-      rowStr.includes('model') || 
+      rowStr.includes('item') ||
+      rowStr.includes('description') ||
+      rowStr.includes('qty') ||
+      rowStr.includes('quantity') ||
+      rowStr.includes('brand') ||
+      rowStr.includes('model') ||
       rowStr.includes('product')
     ) {
       headerRowIndex = i;
@@ -866,7 +866,7 @@ export const batchImportProcurementItems = async (
     user.email,
     'IMPORT_PROCUREMENT_EXCEL',
     `Batch imported ${items.length} procurement enquiries from Excel file`
-  ).catch(() => {});
+  ).catch(() => { });
 
   return { count: items.length, referenceNumbers: generatedRefs };
 };

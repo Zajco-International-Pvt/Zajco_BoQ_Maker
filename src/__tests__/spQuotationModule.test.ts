@@ -45,4 +45,11 @@ describe('SP Quotation Maker Standalone Module Tests', () => {
     expect(content).toContain('xlsx.full.min.js');
     expect(content).toContain('XLSX');
   });
+
+  it('should verify downloadDirectPDF resets minHeight to auto to avoid extra blank page', () => {
+    const content = fs.readFileSync(htmlFilePath, 'utf-8');
+    expect(content).toContain("element.style.minHeight = 'auto'");
+    expect(content).toContain("element.style.boxShadow = 'none'");
+    expect(content).toContain('pagebreak');
+  });
 });

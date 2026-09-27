@@ -1040,6 +1040,39 @@
     }
 
     /* ========================================================= */
+    /* PAGE BREAK & ALIGNMENT RULES FOR PDF & MULTI-PAGE EXPORT  */
+    /* ========================================================= */
+    tr {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    .arabian-totals-row,
+    .arabian-grand-total-row,
+    .qamra-totals-box,
+    .sundial-totals-table,
+    .arabian-bank-section,
+    .qamra-footer,
+    .sundial-bank-stamp-row,
+    .arabian-terms-section,
+    .qamra-terms,
+    .sundial-terms,
+    .arabian-info-grid,
+    .qamra-meta-grid,
+    .sundial-header-grid,
+    .sundial-to-section {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    .arabian-table,
+    .qamra-table,
+    .sundial-table {
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    /* ========================================================= */
     /* PRINT / EXPORT STYLES (A4 Page Fit)                       */
     /* ========================================================= */
     @media print {
@@ -2461,12 +2494,12 @@
           <table class="sundial-table">
             <thead>
               <tr>
-                <th>S#</th>
+                <th style="width:45px;">S#</th>
                 <th>Description</th>
-                <th>Quantity</th>
-                <th>Unit</th>
-                <th>Price</th>
-                <th>Total</th>
+                <th style="width:75px;">Quantity</th>
+                <th style="width:65px;">Unit</th>
+                <th style="width:95px;">Price</th>
+                <th style="width:115px;">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -2525,7 +2558,7 @@
       if (typeof html2pdf !== 'undefined') {
 
         const opt = {
-          margin: [12, 12, 8, 8],
+          margin: [8, 8, 8, 8],
           filename: filename,
 
           image: {
@@ -2544,53 +2577,65 @@
             unit: 'mm',
             format: 'a4',
             orientation: 'portrait'
-          }
+          },
+
+          pagebreak: { mode: ['css', 'legacy'] }
         };
 
-        const btn = event.target;
-        const originalText = btn.innerText;
+        const btn = (typeof event !== 'undefined' && event && event.target)
+          ? event.target
+          : document.querySelector('.preview-toolbar button.btn-success');
+        const originalText = btn ? btn.innerText : '';
 
-        btn.innerText = '⏳ Generating PDF...';
-        btn.disabled = true;
+        if (btn) {
+          btn.innerText = '⏳ Generating PDF...';
+          btn.disabled = true;
+        }
 
         // Save original styles
         const originalWidth = element.style.width;
         const originalMaxWidth = element.style.maxWidth;
         const originalMargin = element.style.margin;
+        const originalMinHeight = element.style.minHeight;
+        const originalBoxShadow = element.style.boxShadow;
+        const originalTransform = element.style.transform;
+        const originalMarginBottom = element.style.marginBottom;
 
-        // A4 width = 210mm
-        // 8mm left + 8mm right margins
-        // Available width = 194mm
+        // A4 width = 210mm; 8mm left + 8mm right margins = 194mm available width
+        // Reset min-height to auto and clear box-shadow/transforms so it fits tightly on 1 page
         element.style.width = '194mm';
         element.style.maxWidth = '194mm';
         element.style.margin = '0 auto';
+        element.style.minHeight = 'auto';
+        element.style.boxShadow = 'none';
+        element.style.transform = 'none';
+        element.style.marginBottom = '0px';
+
+        const restoreStyles = () => {
+          element.style.width = originalWidth;
+          element.style.maxWidth = originalMaxWidth;
+          element.style.margin = originalMargin;
+          element.style.minHeight = originalMinHeight;
+          element.style.boxShadow = originalBoxShadow;
+          element.style.transform = originalTransform;
+          element.style.marginBottom = originalMarginBottom;
+
+          if (btn) {
+            btn.innerText = originalText;
+            btn.disabled = false;
+          }
+        };
 
         html2pdf()
           .set(opt)
           .from(element)
           .save()
           .then(() => {
-
-            // Restore original styles
-            element.style.width = originalWidth;
-            element.style.maxWidth = originalMaxWidth;
-            element.style.margin = originalMargin;
-
-            btn.innerText = originalText;
-            btn.disabled = false;
-
+            restoreStyles();
           })
           .catch(err => {
-
             console.error('html2pdf error:', err);
-
-            element.style.width = originalWidth;
-            element.style.maxWidth = originalMaxWidth;
-            element.style.margin = originalMargin;
-
-            btn.innerText = originalText;
-            btn.disabled = false;
-
+            restoreStyles();
             alert('Generating PDF via browser print dialog...');
             window.print();
           });
