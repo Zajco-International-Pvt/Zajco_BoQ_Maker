@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import ExcelJS from 'exceljs';
-import { exportBOQToExcel } from '../services/excelService';
+import { exportBOQToExcel, exportProcurementItemsToExcel } from '../services/excelService';
 import { calculateBOQItemRow, recalculateBOQTotals } from '../services/boqService';
-import type { BOQ, BOQItem } from '../types';
+import type { BOQ, BOQItem, ProcurementItem } from '../types';
 
 describe('Excel Export Service Tests', () => {
   it('should export BOQ to Excel with correct formula references (E5 conversion rate) and valid non-zero values', async () => {
@@ -196,5 +196,174 @@ describe('Excel Export Service Tests', () => {
     const calcRow3 = worksheet?.getRow(20);
     expect(calcRow3?.getCell(2).value).toBe('Our Selling Price without Installation Charge');
     expect(calcRow3?.getCell(5).value).toBe(6000); // 5000 * 1.2
+  });
+
+  it('should export procurement items and vendor quotations to Excel with correct structure and formulas', async () => {
+    const testItems: ProcurementItem[] = [
+      {
+        id: 'proc-1',
+        referenceNumber: 'PR-2026-001',
+        itemName: 'IP Nurse Call Master Station',
+        description: 'Touchscreen master station with intercom',
+        category: 'Nurse Call System',
+        brand: 'Tunstall',
+        model: 'NC-MS-100',
+        quantity: 5,
+        unit: 'PCS',
+        targetUnitPrice: 2500,
+        currency: 'SAR',
+        priority: 'HIGH',
+        status: 'PENDING_POS',
+        requestedBy: 'Engineer Ali',
+        assignedTo: 'Procurement Specialist',
+        projectReference: 'Hospital Phase 2',
+        expectedDate: '2026-10-15',
+        notes: 'Urgent for commissioning',
+        vendorQuotes: [
+          {
+            id: 'quote-1',
+            vendorName: 'Saudi Medical Supplies Co.',
+            contactPerson: 'Mr. Fahad',
+            contactPhone: '+966 50 123 4567',
+            contactEmail: 'fahad@sms.com.sa',
+            unitPrice: 2400,
+            currency: 'SAR',
+            discountPercentage: 5,
+            netPrice: 2280,
+            leadTime: '3 Weeks',
+            quoteReference: 'SMS-2026-99',
+            isAwarded: true,
+            notes: 'Official authorized distributor',
+            createdAt: '2026-09-20T10:00:00Z'
+          },
+          {
+            id: 'quote-2',
+            vendorName: 'Gulf Electronics Ltd.',
+            unitPrice: 2600,
+            currency: 'SAR',
+            discountPercentage: 0,
+            netPrice: 2600,
+            leadTime: '4 Weeks',
+            isAwarded: false,
+            createdAt: '2026-09-21T10:00:00Z'
+          }
+        ],
+        activityLog: [],
+        createdBy: 'user-admin',
+        createdAt: '2026-09-18T08:00:00Z',
+        updatedAt: '2026-09-21T12:00:00Z'
+      },
+      {
+        id: 'proc-2',
+        referenceNumber: 'PR-2026-002',
+        itemName: 'Corridor Dome Lamp 4-Color',
+        description: 'LED corridor lamp',
+        category: 'Nurse Call System',
+        brand: 'Tunstall',
+        model: 'CL-4C',
+        quantity: 50,
+        unit: 'PCS',
+        targetUnitPrice: 180,
+        currency: 'SAR',
+        priority: 'MEDIUM',
+        status: 'PURCHASES_POS_COMPLETED',
+        requestedBy: 'Site Supervisor',
+        projectReference: 'Hospital Phase 2',
+        vendorQuotes: [],
+        activityLog: [],
+        createdBy: 'user-admin',
+        createdAt: '2026-09-19T08:00:00Z',
+        updatedAt: '2026-09-22T08:00:00Z'
+      }
+    ];
+
+    const { blob, filename } = await exportProcurementItemsToExcel(testItems, {
+      companyName: 'ZAJCO INTERNATIONAL'
+    });
+
+    expect(blob).toBeDefined();
+    expect(filename).toContain('ZAJCO_Procurement_Tracker_');
+    expect(filename.endsWith('.xlsx')).toBe(true);
+
+    const arrayBuffer = await blob.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+
+    // Verify Sheet 1: Procurement Enquiries
+    const sheet1 = workbook.getWorksheet('Procurement Enquiries');
+    expect(sheet1).toBeDefined();
+
+    // Check title banner
+    const titleCell = sheet1?.getCell('A1');
+    expect(titleCell?.value).toBe('ZAJCO INTERNATIONAL');
+
+    // Check row 7 (Item 1)
+    const row7 = sheet1?.getRow(7);
+    expect(row7?.getCell(1).value).toBe('PR-2026-001');
+    expect(row7?.getCell(2).value).toBe('IP Nurse Call Master Station');
+    expect(row7?.getCell(7).value).toBe(5); // Qty
+    expect(row7?.getCell(9).value).toBe(2500); // Target Unit Price
+    expect(row7?.getCell(11).value).toEqual({
+      formula: 'G7*I7',
+      result: 12500 // 5 * 2500
+    });
+    expect(row7?.getCell(18).value).toBe('Saudi Medical Supplies Co. (AWARDED)');
+    expect(row7?.getCell(19).value).toBe(2280);
+
+    // Check row 8 (Item 2)
+    const row8 = sheet1?.getRow(8);
+    expect(row8?.getCell(1).value).toBe('PR-2026-002');
+    expect(row8?.getCell(7).value).toBe(50);
+    expect(row8?.getCell(11).value).toEqual({
+      formula: 'G8*I8',
+      result: 9000 // 50 * 180
+    });
+
+    // Check Totals row at row 10 (startRow 7 + 2 items = endRow 8; totalRow = 8 + 2 = 10)
+    const totalRow = sheet1?.getRow(10);
+    expect(totalRow?.getCell(2).value).toBe('TOTAL');
+    expect(totalRow?.getCell(7).value).toEqual({
+      formula: 'SUM(G7:G8)',
+      result: 55 // 5 + 50
+    });
+    expect(totalRow?.getCell(11).value).toEqual({
+      formula: 'SUM(K7:K8)',
+      result: 21500 // 12500 + 9000
+    });
+
+    // Verify Sheet 2: Vendor Quotations
+    const sheet2 = workbook.getWorksheet('Vendor Quotations');
+    expect(sheet2).toBeDefined();
+
+    const quoteHeader = sheet2?.getCell('A1');
+    expect(quoteHeader?.value).toBe('ALL RECEIVED VENDOR QUOTATIONS');
+
+    const quote1Row = sheet2?.getRow(4);
+    expect(quote1Row?.getCell(1).value).toBe('PR-2026-001');
+    expect(quote1Row?.getCell(4).value).toBe('Saudi Medical Supplies Co.');
+    expect(quote1Row?.getCell(8).value).toBe(2400); // Unit price
+    expect(quote1Row?.getCell(10).value).toBe(0.05); // Discount 5%
+    expect(quote1Row?.getCell(11).value).toBe(2280); // Net price
+    expect(quote1Row?.getCell(12).value).toEqual({
+      formula: 'C4*K4',
+      result: 11400 // 5 * 2280
+    });
+    expect(quote1Row?.getCell(16).value).toBe('AWARDED');
+  });
+
+  it('should handle empty procurement items list without errors', async () => {
+    const { blob, filename } = await exportProcurementItemsToExcel([]);
+    expect(blob).toBeDefined();
+    expect(filename).toContain('.xlsx');
+
+    const arrayBuffer = await blob.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+
+    const sheet1 = workbook.getWorksheet('Procurement Enquiries');
+    expect(sheet1?.getCell('A7').value).toBe('No procurement enquiries recorded.');
+
+    const sheet2 = workbook.getWorksheet('Vendor Quotations');
+    expect(sheet2?.getCell('A4').value).toBe('No vendor quotations recorded yet.');
   });
 });

@@ -17,6 +17,7 @@ import {
   ShieldCheck, 
   Tag,
   FileUp,
+  FileSpreadsheet,
   ExternalLink,
   Copy,
   Package,
@@ -30,6 +31,7 @@ import {
   deleteProcurementItem, 
   updateProcurementStatus,
   exportProcurementItemsToCSV,
+  downloadProcurementExcel,
   getLastProcurementError,
   PROCUREMENT_STATUS_CONFIG, 
   PROCUREMENT_PRIORITY_CONFIG,
@@ -55,6 +57,7 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [copiedRule, setCopiedRule] = useState<boolean>(false);
+  const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
 
   // Modals state
   const [isItemModalOpen, setIsItemModalOpen] = useState<boolean>(false);
@@ -132,6 +135,20 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
       await loadData();
     } catch (err: any) {
       alert('Failed to update status: ' + err.message);
+    }
+  };
+
+  // Export to Excel handler
+  const handleExportExcel = async () => {
+    if (filteredItems.length === 0) return;
+    try {
+      setIsExportingExcel(true);
+      await downloadProcurementExcel(filteredItems, settings);
+    } catch (err: any) {
+      console.error('Failed to export procurement items to Excel:', err);
+      alert('Failed to export to Excel: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setIsExportingExcel(false);
     }
   };
 
@@ -241,6 +258,16 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
           >
             <FileUp className="w-4 h-4 text-emerald-400" />
             <span className="hidden sm:inline">Import Excel</span>
+          </button>
+
+          <button
+            onClick={handleExportExcel}
+            disabled={filteredItems.length === 0 || isExportingExcel}
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Download full Procurement Tracker spreadsheet with item calculations and vendor quotations (.xlsx)"
+          >
+            <FileSpreadsheet className={`w-4 h-4 ${isExportingExcel ? 'animate-bounce' : ''}`} />
+            <span>{isExportingExcel ? 'Exporting...' : 'Export Excel'}</span>
           </button>
 
           <button
@@ -752,9 +779,22 @@ export const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ sett
 
         {/* Table Footer */}
         <div className="p-3 sm:p-4 border-t border-slate-800 bg-slate-950 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-          <div>
-            Showing <span className="text-white font-bold">{filteredItems.length}</span> of{' '}
-            <span className="text-white font-bold">{items.length}</span> procurement enquiries
+          <div className="flex flex-wrap items-center gap-3">
+            <div>
+              Showing <span className="text-white font-bold">{filteredItems.length}</span> of{' '}
+              <span className="text-white font-bold">{items.length}</span> procurement enquiries
+            </div>
+            {filteredItems.length > 0 && (
+              <button
+                onClick={handleExportExcel}
+                disabled={isExportingExcel}
+                className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center space-x-1 transition-colors hover:underline disabled:opacity-40"
+                title="Download currently shown items as Excel (.xlsx)"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Export ({filteredItems.length}) to Excel</span>
+              </button>
+            )}
           </div>
           <div className="text-[11px] text-slate-600">
             Standalone module • All records synced with Firestore procurementItems

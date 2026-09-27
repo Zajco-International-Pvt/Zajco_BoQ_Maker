@@ -785,6 +785,9 @@ export const exportProcurementItemsToCSV = (items: ProcurementItem[]): void => {
   document.body.removeChild(link);
 };
 
+// Re-export high-fidelity Excel export functionality
+export { exportProcurementItemsToExcel, downloadProcurementExcel } from './excelService';
+
 // =========================================================
 // EXCEL IMPORT ENGINE FOR PROCUREMENT ENQUIRIES
 // =========================================================
