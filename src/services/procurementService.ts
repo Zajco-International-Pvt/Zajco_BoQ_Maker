@@ -23,7 +23,15 @@ export const ACTIVE_PROCUREMENT_STATUSES: ProcurementStatus[] = [
   'MATERIAL_SHORTAGES',
   'SUPPLIER_PAYMENT_ISSUES',
   'CRITICAL_STOCK_REQUIREMENTS',
-  'CHAIRMAN_APPROVAL_REQUIRED'
+  'CHAIRMAN_APPROVAL_REQUIRED',
+  'NEW_ENQUIRY',
+  'RFQ_SENT',
+  'QUOTATION_IN_PROGRESS',
+  'QUOTATION_RECEIVED',
+  'UNDER_EVALUATION',
+  'PO_ISSUED',
+  'DELIVERED',
+  'CLOSED'
 ];
 
 export const PROCUREMENT_STATUS_CONFIG: Record<
@@ -110,83 +118,82 @@ export const PROCUREMENT_STATUS_CONFIG: Record<
     description: 'High value or strategic order requiring Chairman sanction',
     step: 10
   },
-  // Legacy / fallback mappings for backward compatibility
   NEW_ENQUIRY: {
-    label: 'Pending purchase orders',
-    bgClass: 'bg-amber-500/10',
-    textClass: 'text-amber-400',
-    borderClass: 'border-amber-500/30',
-    description: 'Pending purchase orders',
-    step: 2
+    label: 'New Enquiry',
+    bgClass: 'bg-sky-500/10',
+    textClass: 'text-sky-400',
+    borderClass: 'border-sky-500/30',
+    description: 'Initial material or service enquiry received',
+    step: 11
   },
   RFQ_SENT: {
-    label: 'Pending purchase orders',
-    bgClass: 'bg-amber-500/10',
-    textClass: 'text-amber-400',
-    borderClass: 'border-amber-500/30',
-    description: 'Pending purchase orders',
-    step: 2
+    label: 'RFQ Sent',
+    bgClass: 'bg-blue-500/10',
+    textClass: 'text-blue-400',
+    borderClass: 'border-blue-500/30',
+    description: 'Request for Quotation sent to suppliers',
+    step: 12
   },
   QUOTATION_IN_PROGRESS: {
-    label: 'Pending purchase orders',
-    bgClass: 'bg-amber-500/10',
-    textClass: 'text-amber-400',
-    borderClass: 'border-amber-500/30',
-    description: 'Pending purchase orders',
-    step: 2
+    label: 'Quotation in Progress',
+    bgClass: 'bg-indigo-500/10',
+    textClass: 'text-indigo-400',
+    borderClass: 'border-indigo-500/30',
+    description: 'Vendor quotations actively being prepared/awaited',
+    step: 13
   },
   QUOTATION_RECEIVED: {
-    label: 'Price/supplier issues',
-    bgClass: 'bg-purple-500/10',
-    textClass: 'text-purple-400',
-    borderClass: 'border-purple-500/30',
-    description: 'Price/supplier issues',
-    step: 5
+    label: 'Quotation Received',
+    bgClass: 'bg-violet-500/10',
+    textClass: 'text-violet-400',
+    borderClass: 'border-violet-500/30',
+    description: 'Supplier quotation received and ready for review',
+    step: 14
   },
   UNDER_EVALUATION: {
-    label: 'Price/supplier issues',
+    label: 'Under Evaluation',
     bgClass: 'bg-purple-500/10',
     textClass: 'text-purple-400',
     borderClass: 'border-purple-500/30',
-    description: 'Price/supplier issues',
-    step: 5
+    description: 'Commercial and technical evaluation of quotations in progress',
+    step: 15
   },
   PO_ISSUED: {
-    label: 'Pending purchase orders',
-    bgClass: 'bg-amber-500/10',
-    textClass: 'text-amber-400',
-    borderClass: 'border-amber-500/30',
-    description: 'Pending purchase orders',
-    step: 2
+    label: 'PO Issued',
+    bgClass: 'bg-teal-500/10',
+    textClass: 'text-teal-400',
+    borderClass: 'border-teal-500/30',
+    description: 'Purchase order finalized and issued to supplier',
+    step: 16
   },
   DELIVERED: {
-    label: 'Purchases/POs completed',
+    label: 'Delivered',
     bgClass: 'bg-emerald-500/10',
     textClass: 'text-emerald-400',
     borderClass: 'border-emerald-500/30',
-    description: 'Purchases/POs completed',
-    step: 1
+    description: 'Materials delivered and received on site / warehouse',
+    step: 17
   },
   CLOSED: {
-    label: 'Purchases/POs completed',
-    bgClass: 'bg-emerald-500/10',
-    textClass: 'text-emerald-400',
-    borderClass: 'border-emerald-500/30',
-    description: 'Purchases/POs completed',
-    step: 1
-  },
-  CANCELLED: {
-    label: 'Purchases/POs completed',
+    label: 'Closed',
     bgClass: 'bg-slate-500/10',
     textClass: 'text-slate-400',
     borderClass: 'border-slate-500/30',
-    description: 'Cancelled / completed',
+    description: 'Procurement cycle completed, inspected, and closed',
+    step: 18
+  },
+  CANCELLED: {
+    label: 'Cancelled',
+    bgClass: 'bg-zinc-500/10',
+    textClass: 'text-zinc-400',
+    borderClass: 'border-zinc-500/30',
+    description: 'Enquiry or procurement order cancelled',
     step: 0
   }
 };
 
 /**
- * Normalizes any status string (including legacy ones) to the active 10 statuses
+ * Normalizes any status string to one of the active procurement statuses
  */
 export const normalizeProcurementStatus = (rawStatus: any): ProcurementStatus => {
   if (!rawStatus) return 'PENDING_POS';
@@ -199,20 +206,13 @@ export const normalizeProcurementStatus = (rawStatus: any): ProcurementStatus =>
   // Exact or label match
   const match = ACTIVE_PROCUREMENT_STATUSES.find(
     s => s.toLowerCase() === str.toLowerCase() ||
-         PROCUREMENT_STATUS_CONFIG[s].label.toLowerCase() === str.toLowerCase()
+         PROCUREMENT_STATUS_CONFIG[s]?.label.toLowerCase() === str.toLowerCase()
   );
   if (match) return match;
 
-  // Legacy status conversion
   const upper = str.toUpperCase();
-  if (upper === 'DELIVERED' || upper === 'CLOSED' || upper === 'CANCELLED' || upper === 'PURCHASES_POS_COMPLETED') {
-    return 'PURCHASES_POS_COMPLETED';
-  }
-  if (upper === 'NEW_ENQUIRY' || upper === 'RFQ_SENT' || upper === 'QUOTATION_IN_PROGRESS' || upper === 'PO_ISSUED') {
-    return 'PENDING_POS';
-  }
-  if (upper === 'QUOTATION_RECEIVED' || upper === 'UNDER_EVALUATION') {
-    return 'PRICE_SUPPLIER_ISSUES';
+  if (upper === 'CANCELLED') {
+    return 'CANCELLED';
   }
 
   return 'PENDING_POS';
@@ -227,13 +227,45 @@ export const getProcurementStatusConfig = (status: any) => {
 };
 
 /**
- * Fuzzy matches text from Excel columns or user input to one of the 10 statuses
+ * Fuzzy matches text from Excel columns or user input to one of the active procurement statuses
  */
 export const matchProcurementStatus = (rawText: string): ProcurementStatus | null => {
   if (!rawText) return null;
   const t = rawText.toLowerCase().trim();
 
-  // Check specific issue/action keywords first
+  // Direct match or label match
+  const directMatch = ACTIVE_PROCUREMENT_STATUSES.find(
+    s => s.toLowerCase() === t || PROCUREMENT_STATUS_CONFIG[s]?.label.toLowerCase() === t
+  );
+  if (directMatch) return directMatch;
+
+  // Keyword matching for enquiry & quote lifecycle stages
+  if (t.includes('new enquiry') || t.includes('new inquiry') || t === 'enquiry' || t === 'inquiry' || t.includes('new enq')) {
+    return 'NEW_ENQUIRY';
+  }
+  if (t.includes('rfq sent') || t.includes('rfq') || t.includes('request for quote') || t.includes('request for quotation')) {
+    return 'RFQ_SENT';
+  }
+  if (t.includes('quotation in progress') || t.includes('quote in progress') || t.includes('quoting')) {
+    return 'QUOTATION_IN_PROGRESS';
+  }
+  if (t.includes('quotation received') || t.includes('quote received') || t.includes('quoted')) {
+    return 'QUOTATION_RECEIVED';
+  }
+  if (t.includes('under evaluation') || t.includes('under review') || t.includes('evaluating') || t.includes('evaluation')) {
+    return 'UNDER_EVALUATION';
+  }
+  if (t.includes('po issued') || t.includes('order issued') || t.includes('po released') || t.includes('issued po')) {
+    return 'PO_ISSUED';
+  }
+  if (t.includes('delivered') || t.includes('received on site') || t.includes('delivered to site')) {
+    return 'DELIVERED';
+  }
+  if (t.includes('closed') || t.includes('close')) {
+    return 'CLOSED';
+  }
+
+  // Check specific issue/action keywords
   if (t.includes('chairman') || t.includes('approval required') || t.includes('board approval')) {
     return 'CHAIRMAN_APPROVAL_REQUIRED';
   }

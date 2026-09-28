@@ -200,7 +200,6 @@ export type ProcurementStatus =
   | 'SUPPLIER_PAYMENT_ISSUES'
   | 'CRITICAL_STOCK_REQUIREMENTS'
   | 'CHAIRMAN_APPROVAL_REQUIRED'
-  // Legacy aliases for backward compatibility with existing saved records
   | 'NEW_ENQUIRY'
   | 'RFQ_SENT'
   | 'QUOTATION_IN_PROGRESS'

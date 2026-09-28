@@ -22,6 +22,7 @@ import type {
   UserProfile 
 } from '../../types';
 import { 
+  ACTIVE_PROCUREMENT_STATUSES,
   PROCUREMENT_STATUS_CONFIG, 
   PROCUREMENT_PRIORITY_CONFIG,
   updateProcurementStatus,
@@ -38,19 +39,6 @@ interface ProcurementDetailsModalProps {
   onEdit: (item: ProcurementItem) => void;
   currentUser: UserProfile;
 }
-
-const LIFECYCLE_STEPS: ProcurementStatus[] = [
-  'PURCHASES_POS_COMPLETED',
-  'PENDING_POS',
-  'URGENTLY_REQUIRED_MATERIALS',
-  'SUPPLIER_DELAYS',
-  'PRICE_SUPPLIER_ISSUES',
-  'EXPECTED_DELIVERIES',
-  'MATERIAL_SHORTAGES',
-  'SUPPLIER_PAYMENT_ISSUES',
-  'CRITICAL_STOCK_REQUIREMENTS',
-  'CHAIRMAN_APPROVAL_REQUIRED'
-];
 
 export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = ({
   item,
@@ -247,8 +235,8 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
               <span>{currentStatusConfig.description}</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-1.5 relative">
-              {LIFECYCLE_STEPS.map((stepKey, idx) => {
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-9 gap-1.5 relative">
+              {ACTIVE_PROCUREMENT_STATUSES.map((stepKey, idx) => {
                 const conf = PROCUREMENT_STATUS_CONFIG[stepKey];
                 const isCurrent = item.status === stepKey;
 

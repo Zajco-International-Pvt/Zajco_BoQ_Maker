@@ -24,7 +24,7 @@ describe('Procurement Service & Module Helpers', () => {
     expect(ref1).toContain(`ENQ-${yy}${mm}-`);
   });
 
-  it('should configure valid lifecycle definitions for all 10 procurement statuses', () => {
+  it('should configure valid lifecycle definitions for all active procurement statuses', () => {
     const expectedStatuses: ProcurementStatus[] = [
       'PURCHASES_POS_COMPLETED',
       'PENDING_POS',
@@ -35,7 +35,15 @@ describe('Procurement Service & Module Helpers', () => {
       'MATERIAL_SHORTAGES',
       'SUPPLIER_PAYMENT_ISSUES',
       'CRITICAL_STOCK_REQUIREMENTS',
-      'CHAIRMAN_APPROVAL_REQUIRED'
+      'CHAIRMAN_APPROVAL_REQUIRED',
+      'NEW_ENQUIRY',
+      'RFQ_SENT',
+      'QUOTATION_IN_PROGRESS',
+      'QUOTATION_RECEIVED',
+      'UNDER_EVALUATION',
+      'PO_ISSUED',
+      'DELIVERED',
+      'CLOSED'
     ];
 
     expect(ACTIVE_PROCUREMENT_STATUSES).toEqual(expectedStatuses);
@@ -59,6 +67,14 @@ describe('Procurement Service & Module Helpers', () => {
     expect(PROCUREMENT_STATUS_CONFIG.SUPPLIER_PAYMENT_ISSUES.label).toBe('Supplier payment issues');
     expect(PROCUREMENT_STATUS_CONFIG.CRITICAL_STOCK_REQUIREMENTS.label).toBe('Critical stock requirements');
     expect(PROCUREMENT_STATUS_CONFIG.CHAIRMAN_APPROVAL_REQUIRED.label).toBe('Chairman approval required');
+    expect(PROCUREMENT_STATUS_CONFIG.NEW_ENQUIRY.label).toBe('New Enquiry');
+    expect(PROCUREMENT_STATUS_CONFIG.RFQ_SENT.label).toBe('RFQ Sent');
+    expect(PROCUREMENT_STATUS_CONFIG.QUOTATION_IN_PROGRESS.label).toBe('Quotation in Progress');
+    expect(PROCUREMENT_STATUS_CONFIG.QUOTATION_RECEIVED.label).toBe('Quotation Received');
+    expect(PROCUREMENT_STATUS_CONFIG.UNDER_EVALUATION.label).toBe('Under Evaluation');
+    expect(PROCUREMENT_STATUS_CONFIG.PO_ISSUED.label).toBe('PO Issued');
+    expect(PROCUREMENT_STATUS_CONFIG.DELIVERED.label).toBe('Delivered');
+    expect(PROCUREMENT_STATUS_CONFIG.CLOSED.label).toBe('Closed');
   });
 
   it('should configure priority styling for all priorities', () => {
@@ -175,12 +191,15 @@ describe('Procurement Service & Module Helpers', () => {
     expect(itemWithImages.images![0]).toMatch(/^data:image\/[a-zA-Z]+;base64,/);
   });
 
-  it('should normalize legacy statuses and match raw text into valid active procurement statuses', () => {
-    expect(normalizeProcurementStatus('NEW_ENQUIRY')).toBe('PENDING_POS');
-    expect(normalizeProcurementStatus('PO_ISSUED')).toBe('PENDING_POS');
-    expect(normalizeProcurementStatus('DELIVERED')).toBe('PURCHASES_POS_COMPLETED');
-    expect(normalizeProcurementStatus('CLOSED')).toBe('PURCHASES_POS_COMPLETED');
-    expect(normalizeProcurementStatus('QUOTATION_RECEIVED')).toBe('PRICE_SUPPLIER_ISSUES');
+  it('should normalize statuses and match raw text into valid active procurement statuses', () => {
+    expect(normalizeProcurementStatus('NEW_ENQUIRY')).toBe('NEW_ENQUIRY');
+    expect(normalizeProcurementStatus('PO_ISSUED')).toBe('PO_ISSUED');
+    expect(normalizeProcurementStatus('DELIVERED')).toBe('DELIVERED');
+    expect(normalizeProcurementStatus('CLOSED')).toBe('CLOSED');
+    expect(normalizeProcurementStatus('QUOTATION_RECEIVED')).toBe('QUOTATION_RECEIVED');
+    expect(normalizeProcurementStatus('RFQ_SENT')).toBe('RFQ_SENT');
+    expect(normalizeProcurementStatus('QUOTATION_IN_PROGRESS')).toBe('QUOTATION_IN_PROGRESS');
+    expect(normalizeProcurementStatus('UNDER_EVALUATION')).toBe('UNDER_EVALUATION');
 
     expect(matchProcurementStatus('Purchase Order Completed')).toBe('PURCHASES_POS_COMPLETED');
     expect(matchProcurementStatus('Supplier Delay on Shipment')).toBe('SUPPLIER_DELAYS');
@@ -189,6 +208,14 @@ describe('Procurement Service & Module Helpers', () => {
     expect(matchProcurementStatus('Material Shortage On Site')).toBe('MATERIAL_SHORTAGES');
     expect(matchProcurementStatus('Supplier Payment Pending')).toBe('SUPPLIER_PAYMENT_ISSUES');
     expect(matchProcurementStatus('Expected Delivery next week')).toBe('EXPECTED_DELIVERIES');
+    expect(matchProcurementStatus('New Enquiry Received')).toBe('NEW_ENQUIRY');
+    expect(matchProcurementStatus('RFQ Sent to Suppliers')).toBe('RFQ_SENT');
+    expect(matchProcurementStatus('Quotation In Progress')).toBe('QUOTATION_IN_PROGRESS');
+    expect(matchProcurementStatus('Quotation Received from Vendor')).toBe('QUOTATION_RECEIVED');
+    expect(matchProcurementStatus('Under Evaluation Stage')).toBe('UNDER_EVALUATION');
+    expect(matchProcurementStatus('PO Issued to Vendor')).toBe('PO_ISSUED');
+    expect(matchProcurementStatus('Items Delivered to Site')).toBe('DELIVERED');
+    expect(matchProcurementStatus('Procurement Closed')).toBe('CLOSED');
   });
 
   it('should reject non-image files in convertFileToBase64', async () => {
