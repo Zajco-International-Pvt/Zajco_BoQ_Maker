@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { BOQ, SystemSettings } from '../types';
+import { getCurrencySymbol } from '../types';
 import { computeBOQCalculationSummary } from './boqService';
 
 export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
@@ -10,6 +11,7 @@ export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
     format: 'a4'
   });
 
+  const baseCurr = boq.currency || 'EUR';
   const companyName = settings?.companyName || 'ZAJCO ENGINEERING & CONTRACTING';
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -54,8 +56,8 @@ export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
     'Item Description',
     'Qty',
     'Source',
-    'Unit EUR',
-    'Total EUR',
+    `Unit ${baseCurr}`,
+    `Total ${baseCurr}`,
     'Unit SAR',
     'Total SAR',
     'Profit %',
@@ -167,7 +169,7 @@ export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
     startY: tableStartY,
     head: [['Calculation', 'Amount']],
     body: [
-      ['Purchase Bill Amount (EUR)', `€ ${summary.purchaseBillAmountEUR.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      [`Purchase Bill Amount (${baseCurr})`, `${getCurrencySymbol(baseCurr)} ${summary.purchaseBillAmountEUR.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
       ['Purchase Bill Amount (SAR)', `SAR ${summary.purchaseBillAmountSAR.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
       ['Our Selling Price without Installation Charge', `SAR ${summary.sellingPriceWithoutInstallation.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
       ['Installation , Testing and Commissioning', `SAR ${summary.installationAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],

@@ -3,6 +3,7 @@ import { FileUp, Check, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 import type { ColumnMapping } from '../../services/excelService';
 import { parseExcelFile } from '../../services/excelService';
 import type { BOQItem, SystemSettings } from '../../types';
+import { getCurrencySymbol } from '../../types';
 import { calculateBOQItemRow } from '../../services/boqService';
 
 interface ExcelImporterModalProps {
@@ -10,12 +11,14 @@ interface ExcelImporterModalProps {
   onImportComplete: (items: BOQItem[]) => void;
   onClose?: () => void;
   settings?: SystemSettings;
+  currency?: string;
 }
 
 export const ExcelImporterModal: React.FC<ExcelImporterModalProps> = ({
   conversionRate,
   onImportComplete,
-  onClose
+  onClose,
+  currency = 'EUR'
 }) => {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<Record<string, any>[]>([]);
@@ -182,7 +185,7 @@ export const ExcelImporterModal: React.FC<ExcelImporterModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Unit Price (EUR)</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Unit Price ({currency})</label>
               <select
                 value={mapping.unitPriceEUR}
                 onChange={(e) => setMapping({ ...mapping, unitPriceEUR: e.target.value })}
@@ -254,7 +257,7 @@ export const ExcelImporterModal: React.FC<ExcelImporterModalProps> = ({
         <div className="space-y-4">
           <div className="text-xs text-slate-300 flex items-center justify-between">
             <span className="font-semibold">Import Preview ({rawRows.length} items parsed)</span>
-            <span className="text-emerald-400 font-mono">Conversion Rate: 1 EUR = {conversionRate} SAR</span>
+            <span className="text-emerald-400 font-mono">Conversion Rate: 1 {currency} = {conversionRate} SAR</span>
           </div>
 
           <div className="max-h-60 overflow-y-auto border border-slate-800 rounded-xl">
@@ -264,7 +267,7 @@ export const ExcelImporterModal: React.FC<ExcelImporterModalProps> = ({
                   <th className="p-2 text-center">S.No</th>
                   <th className="p-2">Description</th>
                   <th className="p-2 text-center">Qty</th>
-                  <th className="p-2 text-right">Unit EUR</th>
+                  <th className="p-2 text-right">Unit {currency}</th>
                   <th className="p-2 text-right">Unit SAR</th>
                   <th className="p-2 text-right">Profit %</th>
                   <th className="p-2 text-right">Total Profit Incl</th>
@@ -276,7 +279,7 @@ export const ExcelImporterModal: React.FC<ExcelImporterModalProps> = ({
                     <td className="p-2 text-center font-mono">{item.serialNumber}</td>
                     <td className="p-2 font-medium">{item.description}</td>
                     <td className="p-2 text-center font-bold">{item.quantity}</td>
-                    <td className="p-2 text-right font-mono">€{item.unitPriceEUR.toFixed(2)}</td>
+                    <td className="p-2 text-right font-mono">{getCurrencySymbol(currency)}{item.unitPriceEUR.toFixed(2)}</td>
                     <td className="p-2 text-right font-mono">SAR {item.unitPriceSAR.toFixed(2)}</td>
                     <td className="p-2 text-right font-mono">{item.profitPercentage}%</td>
                     <td className="p-2 text-right font-mono font-bold text-emerald-400">

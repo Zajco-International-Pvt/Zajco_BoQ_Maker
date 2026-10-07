@@ -12,6 +12,7 @@ import {
   Wrench
 } from 'lucide-react';
 import type { BOQItem, ItemLibraryProduct } from '../../types';
+import { getCurrencySymbol } from '../../types';
 import { calculateBOQItemRow, isInstallationItem } from '../../services/boqService';
 
 interface BOQDataGridProps {
@@ -21,6 +22,7 @@ interface BOQDataGridProps {
   readOnly?: boolean;
   itemLibrary?: ItemLibraryProduct[];
   pricingSources?: string[];
+  currency?: string;
 }
 
 interface DynamicPriceInputProps {
@@ -126,7 +128,8 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
   conversionRate,
   readOnly = false,
   itemLibrary = [],
-  pricingSources = ['Discounted Listed Price', 'Vendor Quotation', 'Management', 'Previous BOQ', 'Manual', 'Other']
+  pricingSources = ['Discounted Listed Price', 'Vendor Quotation', 'Management', 'Previous BOQ', 'Manual', 'Other'],
+  currency = 'EUR'
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [autocompleteRowIdx, setAutocompleteRowIdx] = useState<number | null>(null);
@@ -468,12 +471,12 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                 <th className="p-2.5 min-w-[260px] sticky left-12 bg-slate-950 z-30">Item Description</th>
                 <th className="p-2.5 text-center w-20">QTY</th>
                 <th className="p-2.5 w-40">Pricing Source</th>
-                <th className="p-2.5 text-right w-28">Unit Price (EUR)</th>
-                <th className="p-2.5 text-right w-32 bg-slate-900/60">Total EUR</th>
+                <th className="p-2.5 text-right w-28">Unit Price ({currency})</th>
+                <th className="p-2.5 text-right w-32 bg-slate-900/60">Total {currency}</th>
                 <th className="p-2.5 text-right w-32">
                   <div className="flex items-center justify-end space-x-1">
                     <span>Unit Price (SAR)</span>
-                    <span className="text-[10px] text-blue-400 font-bold" title="Auto calculated from EUR x Conversion Rate unless Manual check is selected">
+                    <span className="text-[10px] text-blue-400 font-bold" title={`Auto calculated from ${currency} x Conversion Rate unless Manual check is selected`}>
                       (x{conversionRate})
                     </span>
                   </div>
@@ -839,7 +842,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                 <td className="p-3 text-center text-blue-400 text-sm font-mono">{totals.qty}</td>
                 <td className="p-3"></td>
                 <td className="p-3"></td>
-                <td className="p-3 text-right text-emerald-400 font-mono text-sm">€{totals.eur.toFixed(2)}</td>
+                <td className="p-3 text-right text-emerald-400 font-mono text-sm">{getCurrencySymbol(currency)} {totals.eur.toFixed(2)}</td>
                 <td className="p-3"></td>
                 <td className="p-3 text-right text-slate-200 font-mono text-sm">SAR {totals.sar.toFixed(2)}</td>
                 <td className="p-3"></td>
@@ -875,7 +878,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
             <p className="text-xs text-slate-400 leading-relaxed">
               Copy cells directly from Microsoft Excel or Google Sheets and paste them into the box below.
               <br />
-              <span className="text-slate-300 font-semibold">Expected column order:</span> Description, Qty, Unit Price (EUR), Pricing Source, Profit %
+              <span className="text-slate-300 font-semibold">Expected column order:</span> Description, Qty, Unit Price ({currency}), Pricing Source, Profit %
             </p>
 
             <textarea

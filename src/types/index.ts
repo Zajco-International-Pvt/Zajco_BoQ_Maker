@@ -21,6 +21,40 @@ export type BOQStatus =
   | 'REJECTED'
   | 'ARCHIVED';
 
+export interface CurrencyOption {
+  code: string;
+  name: string;
+  symbol: string;
+  defaultRateToSAR: number;
+}
+
+export const SUPPORTED_CURRENCIES: CurrencyOption[] = [
+  { code: 'EUR', name: 'Euro (€)', symbol: '€', defaultRateToSAR: 5.0 },
+  { code: 'USD', name: 'US Dollar ($)', symbol: '$', defaultRateToSAR: 3.75 },
+  { code: 'AED', name: 'UAE Dirham (AED / د.إ)', symbol: 'AED', defaultRateToSAR: 1.02 },
+  { code: 'GBP', name: 'British Pound (£)', symbol: '£', defaultRateToSAR: 4.85 },
+  { code: 'SAR', name: 'Saudi Riyal (SAR / ﷼)', symbol: 'SAR', defaultRateToSAR: 1.0 },
+  { code: 'QAR', name: 'Qatari Riyal (QAR)', symbol: 'QAR', defaultRateToSAR: 1.03 },
+  { code: 'KWD', name: 'Kuwaiti Dinar (KWD)', symbol: 'KWD', defaultRateToSAR: 12.25 },
+  { code: 'BHD', name: 'Bahraini Dinar (BHD)', symbol: 'BHD', defaultRateToSAR: 9.95 },
+  { code: 'OMR', name: 'Omani Rial (OMR)', symbol: 'OMR', defaultRateToSAR: 9.75 },
+  { code: 'CNY', name: 'Chinese Yuan (¥)', symbol: '¥', defaultRateToSAR: 0.52 },
+  { code: 'JPY', name: 'Japanese Yen (¥)', symbol: '¥', defaultRateToSAR: 0.025 },
+  { code: 'INR', name: 'Indian Rupee (₹)', symbol: '₹', defaultRateToSAR: 0.045 }
+];
+
+export const getCurrencySymbol = (code?: string): string => {
+  if (!code) return '€';
+  const match = SUPPORTED_CURRENCIES.find(c => c.code.toUpperCase() === code.trim().toUpperCase());
+  return match?.symbol || code.toUpperCase();
+};
+
+export const getDefaultRateToSAR = (code?: string, fallbackRate: number = 5.0): number => {
+  if (!code) return fallbackRate;
+  const match = SUPPORTED_CURRENCIES.find(c => c.code.toUpperCase() === code.trim().toUpperCase());
+  return match?.defaultRateToSAR ?? fallbackRate;
+};
+
 export interface BOQItem {
   id: string;
   serialNumber: number;

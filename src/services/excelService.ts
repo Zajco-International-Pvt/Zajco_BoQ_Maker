@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
 import type { BOQ, SystemSettings, ProcurementItem } from '../types';
+import { getCurrencySymbol } from '../types';
 import { computeBOQCalculationSummary } from './boqService';
 import { getProcurementStatusConfig } from './procurementService';
 
@@ -77,7 +78,8 @@ export const exportBOQToExcel = async (
   worksheet.getCell('B5').value = `${boq.system || ''} / ${boq.brand || ''}`;
   worksheet.getCell('B5').style = valStyle;
 
-  worksheet.getCell('D5').value = 'EUR to SAR Rate:';
+  const baseCurrency = boq.currency || 'EUR';
+  worksheet.getCell('D5').value = `${baseCurrency} to SAR Rate:`;
   worksheet.getCell('D5').style = metaStyle;
   worksheet.getCell('E5').value = Number(conversionRate) || 5;
   worksheet.getCell('E5').style = valStyle;
@@ -105,8 +107,8 @@ export const exportBOQToExcel = async (
     headerTitle,
     'QTY',
     'Pricing Source',
-    'Unit Price (EUR)',
-    'Total Price with Qty (EUR)',
+    `Unit Price (${baseCurrency})`,
+    `Total Price with Qty (${baseCurrency})`,
     'Unit Price (SAR)',
     'Total Price with Qty (SAR)',
     'Profit Percentage %',
@@ -318,7 +320,7 @@ export const exportBOQToExcel = async (
   worksheet.getRow(calcStartRow).height = 24;
 
   const summaryRowsData = [
-    { label: 'Purchase Bill Amount (EUR)', val: summary.purchaseBillAmountEUR, numFmt: '€#,##0.00' },
+    { label: `Purchase Bill Amount (${baseCurrency})`, val: summary.purchaseBillAmountEUR, numFmt: `${getCurrencySymbol(baseCurrency)}#,##0.00` },
     { label: 'Purchase Bill Amount (SAR)', val: summary.purchaseBillAmountSAR, numFmt: '#,##0.00' },
     { label: 'Our Selling Price without Installation Charge', val: summary.sellingPriceWithoutInstallation, numFmt: '#,##0.00', bold: true },
     { label: 'Installation , Testing and Commissioning', val: summary.installationAmount, numFmt: '#,##0.00' },

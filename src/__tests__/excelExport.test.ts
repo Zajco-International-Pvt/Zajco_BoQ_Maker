@@ -154,7 +154,7 @@ describe('Excel Export Service Tests', () => {
       date: '2026-08-31',
       revision: 0,
       status: 'DRAFT',
-      currency: 'SAR',
+      currency: 'EUR',
       conversionRate: 5,
       ...totals,
       items,
@@ -366,4 +366,54 @@ describe('Excel Export Service Tests', () => {
     const sheet2 = workbook.getWorksheet('Vendor Quotations');
     expect(sheet2?.getCell('A4').value).toBe('No vendor quotations recorded yet.');
   });
+
+  it('should export BOQ with custom or alternative currency (e.g. USD) with dynamic labels', async () => {
+    const item = calculateBOQItemRow({
+      serialNumber: 1,
+      description: 'US Supply Item',
+      quantity: 10,
+      unitPriceEUR: 100, // base currency unit price
+      profitPercentage: 15
+    }, 3.75);
+
+    const items: BOQItem[] = [item];
+    const totals = recalculateBOQTotals(items);
+
+    const usdBOQ: BOQ = {
+      id: 'boq-usd-test',
+      boqNumber: 'BOQ-USD-001',
+      projectName: 'USD Project',
+      system: 'CCTV',
+      brand: 'Hikvision',
+      preparedBy: 'Engineer',
+      checkedBy: 'Supervisor',
+      date: '2026-08-31',
+      revision: 0,
+      status: 'DRAFT',
+      currency: 'USD',
+      conversionRate: 3.75,
+      ...totals,
+      items,
+      createdBy: 'user1',
+      createdAt: '2026-08-31T10:00:00Z',
+      updatedAt: '2026-08-31T10:00:00Z'
+    };
+
+    const { blob } = await exportBOQToExcel(usdBOQ);
+    const arrayBuffer = await blob.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+
+    const worksheet = workbook.getWorksheet('BOQ');
+    expect(worksheet?.getCell('D5').value).toBe('USD to SAR Rate:');
+    expect(worksheet?.getRow(10).getCell(5).value).toBe('Unit Price (USD)');
+    expect(worksheet?.getRow(10).getCell(6).value).toBe('Total Price with Qty (USD)');
+
+    // Calculation row for Purchase Bill Amount (USD)
+    // totalRowIdx = 11 + 2 = 13; calcStartRow = 13 + 3 = 16; calcRow1 = 17
+    const calcRow1 = worksheet?.getRow(17);
+    expect(calcRow1?.getCell(2).value).toBe('Purchase Bill Amount (USD)');
+    expect(calcRow1?.getCell(5).value).toBe(1000); // 10 * 100
+  });
 });
+

@@ -16,6 +16,7 @@ import {
   Copy
 } from 'lucide-react';
 import type { BOQ, BOQItem, BOQStatus, ItemLibraryProduct, SystemSettings } from '../../types';
+import { SUPPORTED_CURRENCIES, getCurrencySymbol, getDefaultRateToSAR } from '../../types';
 import { BOQDataGrid } from './BOQDataGrid';
 import { createBOQ, updateBOQ, duplicateBOQ, generateBOQNumber, recalculateBOQTotals, createRevisionBOQ, calculateBOQItemRow } from '../../services/boqService';
 import { exportBOQToExcel, triggerExcelDownload } from '../../services/excelService';
@@ -63,6 +64,8 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
   const [date, setDate] = useState(initialBOQ?.date || new Date().toISOString().split('T')[0]);
   const [revision, setRevision] = useState(initialBOQ?.revision ?? 0);
   const [status, setStatus] = useState<BOQStatus>(initialBOQ?.status || 'DRAFT');
+  const [currency, setCurrency] = useState<string>(initialBOQ?.currency || 'EUR');
+  const [customCurrencyCode, setCustomCurrencyCode] = useState<string>('');
   const [conversionRate, setConversionRate] = useState<number>(initialBOQ?.conversionRate || settings.eurToSarRate || 5);
   const [notes, setNotes] = useState(initialBOQ?.notes || '');
 
@@ -90,6 +93,15 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
     setConversionRate(newRate);
     const updated = items.map(i => calculateBOQItemRow(i, newRate));
     setItems(updated);
+    setSaveStatus('unsaved');
+  };
+
+  const handleCurrencyChange = (newCurr: string) => {
+    setCurrency(newCurr);
+    if (newCurr !== 'CUSTOM') {
+      const defRate = getDefaultRateToSAR(newCurr, newCurr === 'EUR' ? (settings.eurToSarRate || 5) : 1);
+      handleRateChange(defRate);
+    }
     setSaveStatus('unsaved');
   };
 
@@ -123,7 +135,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         date,
         revision,
         status: targetStatus,
-        currency: 'SAR',
+        currency: currency || 'EUR',
         conversionRate,
         ...totals,
         items,
@@ -189,7 +201,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         date,
         revision,
         status,
-        currency: 'SAR',
+        currency: currency || 'EUR',
         conversionRate,
         ...recalculateBOQTotals(items),
         items,
@@ -231,7 +243,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         date,
         revision,
         status,
-        currency: 'SAR',
+        currency: currency || 'EUR',
         conversionRate,
         ...recalculateBOQTotals(items),
         items,
@@ -630,15 +642,63 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
           </div>
 
           <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Purchase Currency
+            </label>
+            <select
+              value={SUPPORTED_CURRENCIES.some(c => c.code === currency) ? currency : 'CUSTOM'}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'CUSTOM') {
+                  const custom = customCurrencyCode || 'USD';
+                  setCurrency(custom);
+                } else {
+                  handleCurrencyChange(val);
+                }
+              }}
+              disabled={isLocked}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-semibold focus:outline-none focus:border-blue-500"
+            >
+              {SUPPORTED_CURRENCIES.map(c => (
+                <option key={c.code} value={c.code}>
+                  {c.code} — {c.name}
+                </option>
+              ))}
+              <option value="CUSTOM">Other / Custom Currency...</option>
+            </select>
+          </div>
+
+          {!SUPPORTED_CURRENCIES.some(c => c.code === currency) && (
+            <div>
+              <label className="block text-xs font-semibold text-blue-400 mb-1">Custom Currency Code</label>
+              <input
+                type="text"
+                maxLength={5}
+                value={currency}
+                onChange={(e) => {
+                  const upper = e.target.value.toUpperCase();
+                  setCurrency(upper);
+                  setCustomCurrencyCode(upper);
+                  setSaveStatus('unsaved');
+                }}
+                disabled={isLocked}
+                placeholder="e.g. CHF, CAD"
+                className="w-full bg-slate-950 border border-blue-500 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-mono font-bold uppercase focus:outline-none focus:border-blue-400"
+              />
+            </div>
+          )}
+
+          <div>
             <label className="block text-xs font-semibold text-amber-300 mb-1 flex items-center justify-between">
-              <span>EUR → SAR Rate</span>
-              <span className="text-[10px] text-slate-500">Default: {settings.eurToSarRate}</span>
+              <span>{currency} → SAR Rate</span>
+              <span className="text-[10px] text-slate-500">1 {currency} = {conversionRate} SAR</span>
             </label>
             <input
               type="number"
-              step="0.01"
+              step="0.001"
+              min="0.0001"
               value={conversionRate}
-              onChange={(e) => handleRateChange(parseFloat(e.target.value) || 5)}
+              onChange={(e) => handleRateChange(parseFloat(e.target.value) || 1)}
               disabled={isLocked}
               className="w-full bg-slate-950 border border-amber-500/50 text-amber-300 font-bold rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-amber-400"
             />
@@ -648,11 +708,11 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <div className="bg-slate-900 border border-slate-800 p-3.5 sm:p-4 rounded-2xl shadow-lg">
-          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total EUR Value</div>
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total {currency} Value</div>
           <div className="text-lg sm:text-xl font-extrabold text-emerald-400 font-mono mt-1">
-            €{totals.totalEUR.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {getCurrencySymbol(currency)} {totals.totalEUR.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Base EUR items cost</div>
+          <div className="text-[11px] text-slate-500 mt-1">Base {currency} items cost</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-3.5 sm:p-4 rounded-2xl shadow-lg">
@@ -693,6 +753,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         items={items}
         onChangeItems={(newItems) => { setItems(newItems); setSaveStatus('unsaved'); }}
         conversionRate={conversionRate}
+        currency={currency}
         readOnly={isLocked}
         itemLibrary={itemLibrary}
         pricingSources={settings.pricingSourcesList}
@@ -725,9 +786,9 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-200">
               <tr className="hover:bg-slate-800/40 transition-colors">
-                <td className="p-3 font-medium text-slate-300">Purchase Bill Amount (EUR)</td>
+                <td className="p-3 font-medium text-slate-300">Purchase Bill Amount ({currency})</td>
                 <td className="p-3 text-right font-mono font-bold text-emerald-400">
-                  €{(totals.calculationSummary?.purchaseBillAmountEUR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {getCurrencySymbol(currency)} {(totals.calculationSummary?.purchaseBillAmountEUR ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
               </tr>
               <tr className="hover:bg-slate-800/40 transition-colors">
