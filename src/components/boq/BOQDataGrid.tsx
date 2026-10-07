@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Plus,
   Trash2,
@@ -22,6 +22,103 @@ interface BOQDataGridProps {
   itemLibrary?: ItemLibraryProduct[];
   pricingSources?: string[];
 }
+
+interface DynamicPriceInputProps {
+  value: number;
+  onChange: (val: number) => void;
+  disabled?: boolean;
+  className?: string;
+  isAmber?: boolean;
+  minChars?: number;
+  placeholder?: string;
+}
+
+const DynamicPriceInput: React.FC<DynamicPriceInputProps> = ({
+  value,
+  onChange,
+  disabled = false,
+  className = '',
+  isAmber = false,
+  minChars = 4,
+  placeholder = '0.00'
+}) => {
+  const [text, setText] = useState<string>(() => (value !== undefined && value !== null ? String(value) : '0'));
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setText(value !== undefined && value !== null ? String(value) : '0');
+    }
+  }, [value, isFocused]);
+
+  const currentText = isFocused ? text : (value !== undefined && value !== null ? String(value) : '0');
+
+  // Dynamic width based on the actual typed text length (including '.', '0', and extra decimals)
+  const dynamicWidth = `${Math.max(minChars, currentText.length) + 2.5}ch`;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value;
+    if (raw.includes(',') && !raw.includes('.')) {
+      raw = raw.replace(',', '.');
+    }
+
+    if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+      setText(raw);
+      if (raw === '' || raw === '.') {
+        onChange(0);
+      } else {
+        const num = parseFloat(raw);
+        if (!isNaN(num)) {
+          onChange(num);
+        }
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (text === '' || text === '.') {
+      setText('0');
+      onChange(0);
+    } else {
+      const num = parseFloat(text);
+      if (!isNaN(num)) {
+        setText(String(num));
+        onChange(num);
+      } else {
+        setText('0');
+        onChange(0);
+      }
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      disabled={disabled}
+      placeholder={placeholder}
+      value={currentText}
+      onFocus={(e) => {
+        setIsFocused(true);
+        e.target.select();
+      }}
+      onBlur={handleBlur}
+      onChange={handleChange}
+      style={{
+        width: dynamicWidth,
+        fieldSizing: 'content' as any
+      }}
+      className={`min-w-[4.25rem] max-w-[14rem] text-right bg-slate-950 border rounded px-2 py-1 text-xs font-mono font-semibold focus:outline-none focus:ring-1 transition-[width] duration-100 ${
+        disabled
+          ? 'border-slate-800 text-slate-400 cursor-not-allowed'
+          : isAmber
+            ? 'border-amber-500/80 text-amber-300 bg-amber-950/20 focus:border-amber-500 focus:ring-amber-500'
+            : 'border-slate-800 text-emerald-400 focus:border-blue-500 focus:ring-blue-500'
+      } ${className}`}
+    />
+  );
+};
 
 export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
   items,
@@ -410,7 +507,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                         </td>
 
                         {/* Spanned Header Title */}
-                        <td colSpan={10} className="p-2 sticky left-12 bg-slate-950/90 z-10">
+                        <td colSpan={11} className="p-2 sticky left-12 bg-slate-950/90 z-10">
                           <div className="flex items-center space-x-2.5">
                             <div className="flex items-center space-x-1 px-2 py-0.5 rounded bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 text-[10px] font-extrabold uppercase tracking-wider flex-shrink-0 select-none">
                               <Heading className="w-3 h-3 text-indigo-400" />
@@ -579,18 +676,16 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                       </td>
 
                       {/* Unit Price EUR */}
-                      <td className="p-1.5 text-center">
+                      <td className="p-1.5 text-right">
                         {readOnly ? (
-                          <div className="font-mono text-slate-200">{item.unitPriceEUR.toFixed(2)}</div>
+                          <div className="font-mono text-slate-200 text-right pr-2">{item.unitPriceEUR.toFixed(2)}</div>
                         ) : (
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.unitPriceEUR}
-                            onChange={(e) => handleCellChange(idx, 'unitPriceEUR', parseFloat(e.target.value) || 0)}
-                            className="w-full min-w-[55px] text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-emerald-400 font-mono font-semibold focus:outline-none focus:border-blue-500"
-                          />
+                          <div className="flex justify-end">
+                            <DynamicPriceInput
+                              value={item.unitPriceEUR}
+                              onChange={(val) => handleCellChange(idx, 'unitPriceEUR', val)}
+                            />
+                          </div>
                         )}
                       </td>
 
@@ -600,34 +695,28 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                       </td>
 
                       {/* Unit Price SAR (Auto / Manual Toggle) */}
-                      <td className="p-1.5">
+                      <td className="p-1.5 text-right">
                         {readOnly ? (
-                          <div className="text-center font-mono text-slate-200">
+                          <div className="text-right pr-2 font-mono text-slate-200">
                             {item.unitPriceSAR.toFixed(2)}
                             {item.isManualSAR && <span className="ml-1 text-[10px] text-amber-400 font-bold">(M)</span>}
                           </div>
                         ) : (
-                          <div className="space-y-1">
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
+                          <div className="flex flex-col items-end space-y-1">
+                            <DynamicPriceInput
                               value={item.unitPriceSAR}
                               disabled={!item.isManualSAR}
-                              onChange={(e) => handleCellChange(idx, 'unitPriceSAR', parseFloat(e.target.value) || 0)}
-                              className={`w-full text-center bg-slate-950 border rounded px-1.5 py-1 text-xs font-mono font-semibold focus:outline-none ${item.isManualSAR
-                                ? 'border-amber-500/80 text-amber-300 bg-amber-950/20'
-                                : 'border-slate-800 text-slate-400'
-                                }`}
+                              isAmber={!!item.isManualSAR}
+                              onChange={(val) => handleCellChange(idx, 'unitPriceSAR', val)}
                             />
                             <label className="flex items-center justify-end space-x-1 cursor-pointer select-none">
                               <input
                                 type="checkbox"
                                 checked={!!item.isManualSAR}
                                 onChange={(e) => handleCellChange(idx, 'isManualSAR', e.target.checked)}
-                                className="w-3 h-3 text-amber-500 rounded border-slate-700 bg-slate-950 focus:ring-0"
+                                className="w-3.5 h-3.5 text-amber-500 rounded border-slate-700 bg-slate-950 focus:ring-0"
                               />
-                              <span className="text-[10px] text-slate-500 font-medium">Manual SAR</span>
+                              <span className="text-[10px] text-slate-500 font-medium hover:text-slate-400 transition-colors whitespace-nowrap">Manual SAR</span>
                             </label>
                           </div>
                         )}
