@@ -7,6 +7,7 @@ import { Sidebar } from './components/common/Sidebar';
 import { DashboardOverview } from './components/dashboard/DashboardOverview';
 import { BOQEditor } from './components/boq/BOQEditor';
 import { BOQsList } from './components/boq/BOQsList';
+import { BOQViewModal } from './components/boq/BOQViewModal';
 import { ExcelImporterModal } from './components/boq/ExcelImporterModal';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { TemplatesModal } from './components/templates/TemplatesModal';
@@ -33,6 +34,7 @@ export const AppContent: React.FC = () => {
   const [isDataLoading, setIsDataLoading] = useState<boolean>(false);
 
   const [editingBOQ, setEditingBOQ] = useState<BOQ | null>(null);
+  const [viewingBOQ, setViewingBOQ] = useState<BOQ | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Load backend data whenever auth state, profile or permissions are updated
@@ -134,7 +136,7 @@ export const AppContent: React.FC = () => {
               onRefresh={refreshData}
               onCreateBOQ={() => { setEditingBOQ(null); setCurrentTab('create-boq'); }}
               onImportExcel={() => setCurrentTab('excel-import')}
-              onViewBOQ={(b) => { setEditingBOQ(b); setCurrentTab('create-boq'); }}
+              onViewBOQ={(b) => setViewingBOQ(b)}
               onEditBOQ={(b) => { setEditingBOQ(b); setCurrentTab('create-boq'); }}
               onOpenTemplates={() => setCurrentTab('templates')}
             />
@@ -157,7 +159,7 @@ export const AppContent: React.FC = () => {
               settings={settings}
               isLoading={isDataLoading}
               onEditBOQ={(b) => { setEditingBOQ(b); setCurrentTab('create-boq'); }}
-              onViewBOQ={(b) => { setEditingBOQ(b); setCurrentTab('create-boq'); }}
+              onViewBOQ={(b) => setViewingBOQ(b)}
               onCreateNew={() => { setEditingBOQ(null); setCurrentTab('create-boq'); }}
               onRefresh={refreshData}
             />
@@ -217,6 +219,22 @@ export const AppContent: React.FC = () => {
 
         </main>
       </div>
+
+      {/* Read-Only BOQ Preview Pop-up Modal */}
+      {viewingBOQ && (
+        <BOQViewModal
+          boq={viewingBOQ}
+          isOpen={!!viewingBOQ}
+          onClose={() => setViewingBOQ(null)}
+          onEdit={(b) => {
+            setViewingBOQ(null);
+            setEditingBOQ(b);
+            setCurrentTab('create-boq');
+          }}
+          settings={settings}
+          canEdit={isAdmin || viewingBOQ.status === 'DRAFT' || viewingBOQ.status === 'REJECTED'}
+        />
+      )}
     </div>
   );
 };

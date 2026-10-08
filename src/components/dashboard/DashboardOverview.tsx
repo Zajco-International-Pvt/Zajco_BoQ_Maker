@@ -198,10 +198,17 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 recentBOQs.map(b => (
                   <tr key={b.id} className="hover:bg-slate-800/50 transition-colors">
                     <td className="p-3 font-mono font-bold text-blue-400">
-                      <div>{b.boqNumber}</div>
-                      {b.projectName && (
-                        <div className="text-[10px] text-slate-400 font-normal truncate max-w-xs">{b.projectName}</div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => onViewBOQ(b)}
+                        className="text-left hover:underline focus:outline-none group cursor-pointer"
+                        title="Click to preview BOQ in modal"
+                      >
+                        <div className="group-hover:text-blue-300 transition-colors">{b.boqNumber}</div>
+                        {b.projectName && (
+                          <div className="text-[10px] text-slate-400 font-normal truncate max-w-xs group-hover:text-slate-300">{b.projectName}</div>
+                        )}
+                      </button>
                     </td>
                     <td className="p-3">
                       <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
@@ -224,15 +231,17 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                     <td className="p-3 text-center">
                       <div className="flex items-center justify-center space-x-2">
                         <button
+                          type="button"
                           onClick={() => onViewBOQ(b)}
-                          className="p-1 text-slate-400 hover:text-blue-400"
-                          title="View BOQ"
+                          className="p-1 text-slate-400 hover:text-blue-400 rounded-lg hover:bg-blue-500/10 transition-colors cursor-pointer"
+                          title="Preview BOQ Details (Read-Only)"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => onEditBOQ(b)}
-                          className="p-1 text-slate-400 hover:text-amber-400"
+                          className="p-1 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-amber-500/10 transition-colors cursor-pointer"
                           title="Edit BOQ"
                         >
                           <Edit3 className="w-4 h-4" />

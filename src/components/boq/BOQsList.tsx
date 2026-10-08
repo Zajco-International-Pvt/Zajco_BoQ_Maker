@@ -296,10 +296,17 @@ export const BOQsList: React.FC<BOQsListProps> = ({
                   return (
                     <tr key={boq.id} className="hover:bg-slate-800/50 transition-colors">
                       <td className="p-3.5 font-mono font-bold text-blue-400">
-                        <div>{boq.boqNumber}</div>
-                        {boq.projectName && (
-                          <div className="text-[10px] text-slate-400 font-normal truncate max-w-xs">{boq.projectName}</div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => onViewBOQ(boq)}
+                          className="text-left hover:underline focus:outline-none group cursor-pointer"
+                          title="Click to preview BOQ in modal"
+                        >
+                          <div className="group-hover:text-blue-300 transition-colors">{boq.boqNumber}</div>
+                          {boq.projectName && (
+                            <div className="text-[10px] text-slate-400 font-normal truncate max-w-xs group-hover:text-slate-300">{boq.projectName}</div>
+                          )}
+                        </button>
                       </td>
                       <td className="p-3.5">
                         <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
@@ -325,18 +332,20 @@ export const BOQsList: React.FC<BOQsListProps> = ({
                       <td className="p-3.5 text-center">
                         <div className="flex items-center justify-center space-x-1.5">
                           <button
+                            type="button"
                             onClick={() => onViewBOQ(boq)}
-                            title="View Details"
-                            className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                            title="Preview BOQ Details (Read-Only)"
+                            className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors cursor-pointer"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
 
                           {canEdit && (
                             <button
+                              type="button"
                               onClick={() => onEditBOQ(boq)}
                               title="Edit BOQ"
-                              className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
+                              className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors cursor-pointer"
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
