@@ -182,6 +182,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <th className="p-3">BOQ No</th>
                 <th className="p-3">System</th>
                 <th className="p-3">Brand</th>
+                <th className="p-3">Prepared By</th>
+                <th className="p-3">Date</th>
                 <th className="p-3 font-mono text-right">Value (SAR)</th>
                 <th className="p-3 text-center">Status</th>
                 <th className="p-3 text-center">Actions</th>
@@ -190,7 +192,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <tbody className="divide-y divide-slate-800 text-slate-300">
               {recentBOQs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-500">
+                  <td colSpan={8} className="p-6 text-center text-slate-500">
                     No BOQs created yet. Click "+ Create New BOQ" to get started!
                   </td>
                 </tr>
@@ -216,6 +218,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                       </span>
                     </td>
                     <td className="p-3 text-slate-300">{b.brand || '-'}</td>
+                    <td className="p-3 text-slate-400">{b.preparedBy || '-'}</td>
+                    <td className="p-3 text-slate-400 font-mono">{b.date || '-'}</td>
                     <td className="p-3 text-right font-mono font-bold text-emerald-400">
                       SAR {(b.totalFinalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
