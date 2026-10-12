@@ -209,3 +209,152 @@ export const exportBOQToPDF = (boq: BOQ, settings?: SystemSettings): void => {
   const filename = safeProj ? `${safeNum}-${safeProj}.pdf` : `${safeNum}.pdf`;
   doc.save(filename);
 };
+
+export interface DashboardPDFReportFilters {
+  system?: string;
+  status?: string;
+  dateRange?: string;
+  preparedBy?: string;
+}
+
+/**
+ * Export Dashboard BOQ portfolio report to an executive landscape PDF document.
+ */
+export const exportDashboardBOQReportToPDF = (
+  boqs: BOQ[],
+  settings?: SystemSettings | Partial<SystemSettings> | null,
+  filters?: DashboardPDFReportFilters
+): jsPDF => {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const companyName = settings?.companyName || 'ZAJCO ENGINEERING & CONTRACTING';
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // Header Banner
+  doc.setFillColor(30, 58, 138); // Deep Navy
+  doc.rect(0, 0, pageWidth, 24, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255);
+  doc.text(companyName.toUpperCase(), 14, 11);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('BOQ PORTFOLIO SUMMARY & REGISTER REPORT', 14, 18);
+
+  const dateStr = new Date().toLocaleDateString();
+  doc.setFontSize(9);
+  doc.text(`Generated: ${dateStr}`, pageWidth - 14, 11, { align: 'right' });
+  doc.text(`Total BOQs: ${boqs.length}`, pageWidth - 14, 18, { align: 'right' });
+
+  // Summary KPIs Box
+  const metaTop = 27;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(14, metaTop, pageWidth - 28, 18, 'F');
+
+  const totalValueSAR = boqs.reduce((acc, b) => acc + (b.totalFinalValue || 0), 0);
+  const approvedCount = boqs.filter(b => b.status === 'APPROVED').length;
+  const submittedCount = boqs.filter(b => b.status === 'SUBMITTED').length;
+  const draftCount = boqs.filter(b => b.status === 'DRAFT').length;
+  const rejectedCount = boqs.filter(b => b.status === 'REJECTED').length;
+
+  doc.setTextColor(30, 41, 59);
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Total Portfolio: SAR ${totalValueSAR.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 18, metaTop + 6);
+  doc.text(`Filter System: ${filters?.system || 'All Systems'}`, 18, metaTop + 13);
+
+  doc.text(`Approved: ${approvedCount} | Submitted: ${submittedCount} | Draft: ${draftCount} | Rejected: ${rejectedCount}`, 120, metaTop + 6);
+  doc.text(`Filter Status: ${filters?.status || 'All'} | Range: ${filters?.dateRange || 'All Time'} | By: ${filters?.preparedBy || 'All'}`, 120, metaTop + 13);
+
+  // Table Data
+  const headers = [
+    '#',
+    'BOQ No',
+    'Project Name',
+    'System',
+    'Brand',
+    'Prepared By',
+    'Date',
+    'Status',
+    'Value (SAR)'
+  ];
+
+  const rows = boqs.map((b, idx) => [
+    idx + 1,
+    b.boqNumber,
+    b.projectName || '-',
+    b.system || '-',
+    b.brand || '-',
+    b.preparedBy || '-',
+    b.date || '-',
+    b.status,
+    (b.totalFinalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  ]);
+
+  // Total summary row
+  rows.push([
+    '',
+    'TOTAL',
+    '',
+    '',
+    '',
+    '',
+    '',
+    `${boqs.length} BOQs`,
+    totalValueSAR.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  ]);
+
+  autoTable(doc, {
+    startY: metaTop + 22,
+    head: [headers],
+    body: rows,
+    margin: { left: 14, right: 14 },
+    theme: 'grid',
+    headStyles: {
+      fillColor: [30, 41, 59],
+      textColor: [255, 255, 255],
+      fontSize: 8,
+      fontStyle: 'bold',
+      halign: 'center'
+    },
+    bodyStyles: {
+      fontSize: 7.5,
+      textColor: [51, 65, 85]
+    },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 8 },
+      1: { cellWidth: 36, fontStyle: 'bold' },
+      2: {},
+      3: { cellWidth: 30 },
+      4: { cellWidth: 25 },
+      5: { cellWidth: 30 },
+      6: { halign: 'center', cellWidth: 22 },
+      7: { halign: 'center', cellWidth: 22 },
+      8: { halign: 'right', cellWidth: 30, fontStyle: 'bold' }
+    },
+    didParseCell: (data) => {
+      const isTotalRow = data.row.index === rows.length - 1;
+      if (isTotalRow) {
+        data.cell.styles.fillColor = [241, 245, 249];
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.textColor = [30, 58, 138];
+      } else if (data.column.index === 7) {
+        const val = String(data.cell.raw);
+        if (val === 'APPROVED') data.cell.styles.textColor = [16, 185, 129];
+        else if (val === 'SUBMITTED') data.cell.styles.textColor = [59, 130, 246];
+        else if (val === 'REJECTED') data.cell.styles.textColor = [239, 68, 68];
+        else if (val === 'DRAFT') data.cell.styles.textColor = [217, 119, 6];
+      }
+    }
+  });
+
+  const filename = `ZAJCO-BOQ-Portfolio-Report-${new Date().toISOString().slice(0, 10)}.pdf`;
+  doc.save(filename);
+  return doc;
+};

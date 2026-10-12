@@ -893,3 +893,299 @@ const findBestMatch = (headers: string[], keywords: string[]): string => {
   }
   return '';
 };
+
+export interface DashboardReportFilters {
+  system?: string;
+  status?: string;
+  dateRange?: string;
+  startDate?: string;
+  endDate?: string;
+  preparedBy?: string;
+}
+
+/**
+ * Export Dashboard BOQ portfolio report to an executive-styled multi-sheet Excel (.xlsx) workbook.
+ * Sheet 1: Executive Summary (Key KPIs, status breakdown, system share)
+ * Sheet 2: BOQ Register (Full schedule of matching BOQs with details)
+ */
+export const exportDashboardBOQReportToExcel = async (
+  boqs: BOQ[],
+  settings?: SystemSettings | Partial<SystemSettings> | null,
+  filters?: DashboardReportFilters
+): Promise<{ blob: Blob; filename: string }> => {
+  const workbook = new ExcelJS.Workbook();
+  const companyName = settings?.companyName || 'ZAJCO ENGINEERING & CONTRACTING';
+  workbook.creator = companyName;
+  workbook.lastModifiedBy = 'ZAJCO Dashboard Report Generator';
+  workbook.created = new Date();
+  workbook.modified = new Date();
+
+  // -------------------------------------------------------------
+  // Sheet 1: Executive Summary
+  // -------------------------------------------------------------
+  const summarySheet = workbook.addWorksheet('Executive Summary', {
+    views: [{ showGridLines: true }]
+  });
+
+  // Header Banner
+  summarySheet.mergeCells('A1:G1');
+  const h1 = summarySheet.getCell('A1');
+  h1.value = companyName.toUpperCase();
+  h1.font = { name: 'Arial', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
+  h1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+  h1.alignment = { horizontal: 'center', vertical: 'middle' };
+  summarySheet.getRow(1).height = 36;
+
+  summarySheet.mergeCells('A2:G2');
+  const h2 = summarySheet.getCell('A2');
+  h2.value = 'BOQ PORTFOLIO EXECUTIVE SUMMARY REPORT';
+  h2.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1E3A8A' } };
+  h2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+  h2.alignment = { horizontal: 'center', vertical: 'middle' };
+  summarySheet.getRow(2).height = 24;
+
+  // Metadata block (Row 4 - 6)
+  const metaHeaderStyle = {
+    font: { name: 'Arial', size: 10, bold: true },
+    fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFF1F5F9' } }
+  };
+  const metaValStyle = { font: { name: 'Arial', size: 10 } };
+
+  summarySheet.getCell('A4').value = 'Generated Date:';
+  summarySheet.getCell('A4').style = metaHeaderStyle;
+  summarySheet.getCell('B4').value = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString();
+  summarySheet.getCell('B4').style = metaValStyle;
+
+  summarySheet.getCell('D4').value = 'Total BOQs:';
+  summarySheet.getCell('D4').style = metaHeaderStyle;
+  summarySheet.getCell('E4').value = boqs.length;
+  summarySheet.getCell('E4').style = metaValStyle;
+
+  summarySheet.getCell('A5').value = 'System Filter:';
+  summarySheet.getCell('A5').style = metaHeaderStyle;
+  summarySheet.getCell('B5').value = filters?.system || 'All Systems';
+  summarySheet.getCell('B5').style = metaValStyle;
+
+  summarySheet.getCell('D5').value = 'Status Filter:';
+  summarySheet.getCell('D5').style = metaHeaderStyle;
+  summarySheet.getCell('E5').value = filters?.status || 'All Statuses';
+  summarySheet.getCell('E5').style = metaValStyle;
+
+  summarySheet.getCell('A6').value = 'Date Range:';
+  summarySheet.getCell('A6').style = metaHeaderStyle;
+  summarySheet.getCell('B6').value = filters?.dateRange || 'All Time';
+  summarySheet.getCell('B6').style = metaValStyle;
+
+  summarySheet.getCell('D6').value = 'Prepared By:';
+  summarySheet.getCell('D6').style = metaHeaderStyle;
+  summarySheet.getCell('E6').value = filters?.preparedBy || 'All Engineers';
+  summarySheet.getCell('E6').style = metaValStyle;
+
+  // KPIs Section (Row 8)
+  summarySheet.getCell('A8').value = '1. PORTFOLIO KEY PERFORMANCE INDICATORS';
+  summarySheet.getCell('A8').font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1E3A8A' } };
+
+  const totalValueSAR = boqs.reduce((acc, b) => acc + (b.totalFinalValue || 0), 0);
+  const totalValueEUR = boqs.reduce((acc, b) => acc + (b.totalEUR || 0), 0);
+  const approvedBOQs = boqs.filter(b => b.status === 'APPROVED');
+  const submittedBOQs = boqs.filter(b => b.status === 'SUBMITTED');
+  const draftBOQs = boqs.filter(b => b.status === 'DRAFT');
+  const rejectedBOQs = boqs.filter(b => b.status === 'REJECTED');
+
+  const approvedValue = approvedBOQs.reduce((acc, b) => acc + (b.totalFinalValue || 0), 0);
+  const submittedValue = submittedBOQs.reduce((acc, b) => acc + (b.totalFinalValue || 0), 0);
+  const draftValue = draftBOQs.reduce((acc, b) => acc + (b.totalFinalValue || 0), 0);
+  const rejectedValue = rejectedBOQs.reduce((acc, b) => acc + (b.totalFinalValue || 0), 0);
+
+  const kpiHeaders = ['Metric / Status', 'Count', 'Total Value (SAR)', '% Share of Value'];
+  summarySheet.getRow(9).values = kpiHeaders;
+  summarySheet.getRow(9).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+  summarySheet.getRow(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+  summarySheet.getRow(9).height = 22;
+
+  const kpiRows = [
+    ['Total Portfolio', boqs.length, totalValueSAR, totalValueSAR > 0 ? '100.0%' : '0.0%'],
+    ['Approved BOQs', approvedBOQs.length, approvedValue, totalValueSAR > 0 ? `${((approvedValue / totalValueSAR) * 100).toFixed(1)}%` : '0.0%'],
+    ['Submitted BOQs (Under Review)', submittedBOQs.length, submittedValue, totalValueSAR > 0 ? `${((submittedValue / totalValueSAR) * 100).toFixed(1)}%` : '0.0%'],
+    ['Draft BOQs (In Progress)', draftBOQs.length, draftValue, totalValueSAR > 0 ? `${((draftValue / totalValueSAR) * 100).toFixed(1)}%` : '0.0%'],
+    ['Rejected BOQs', rejectedBOQs.length, rejectedValue, totalValueSAR > 0 ? `${((rejectedValue / totalValueSAR) * 100).toFixed(1)}%` : '0.0%']
+  ];
+
+  kpiRows.forEach((row, idx) => {
+    const rowNum = 10 + idx;
+    const r = summarySheet.getRow(rowNum);
+    r.values = row;
+    r.font = { name: 'Arial', size: 10, bold: idx === 0 };
+    r.getCell(2).alignment = { horizontal: 'center' };
+    r.getCell(3).numFmt = '#,##0.00';
+    r.getCell(3).alignment = { horizontal: 'right' };
+    r.getCell(4).alignment = { horizontal: 'right' };
+    if (idx === 0) {
+      r.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+    }
+  });
+
+  // System Breakdown (Row 17)
+  const systemStartRow = 17;
+  summarySheet.getCell(`A${systemStartRow}`).value = '2. SYSTEM BREAKDOWN';
+  summarySheet.getCell(`A${systemStartRow}`).font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1E3A8A' } };
+
+  summarySheet.getRow(systemStartRow + 1).values = ['System Category', 'BOQs Count', 'Total Value (SAR)', '% Share of Value'];
+  summarySheet.getRow(systemStartRow + 1).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+  summarySheet.getRow(systemStartRow + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+  summarySheet.getRow(systemStartRow + 1).height = 22;
+
+  const systemMap = new Map<string, { count: number; value: number }>();
+  boqs.forEach(b => {
+    const sys = b.system || 'General / Unspecified';
+    const curr = systemMap.get(sys) || { count: 0, value: 0 };
+    curr.count += 1;
+    curr.value += b.totalFinalValue || 0;
+    systemMap.set(sys, curr);
+  });
+
+  let curSysRow = systemStartRow + 2;
+  Array.from(systemMap.entries()).forEach(([sys, data]) => {
+    const r = summarySheet.getRow(curSysRow);
+    const share = totalValueSAR > 0 ? `${((data.value / totalValueSAR) * 100).toFixed(1)}%` : '0.0%';
+    r.values = [sys, data.count, data.value, share];
+    r.font = { name: 'Arial', size: 10 };
+    r.getCell(2).alignment = { horizontal: 'center' };
+    r.getCell(3).numFmt = '#,##0.00';
+    r.getCell(3).alignment = { horizontal: 'right' };
+    r.getCell(4).alignment = { horizontal: 'right' };
+    curSysRow++;
+  });
+
+  summarySheet.getColumn(1).width = 34;
+  summarySheet.getColumn(2).width = 16;
+  summarySheet.getColumn(3).width = 24;
+  summarySheet.getColumn(4).width = 20;
+  summarySheet.getColumn(5).width = 22;
+  summarySheet.getColumn(6).width = 18;
+  summarySheet.getColumn(7).width = 18;
+
+  // -------------------------------------------------------------
+  // Sheet 2: BOQ Register
+  // -------------------------------------------------------------
+  const registerSheet = workbook.addWorksheet('BOQ Register', {
+    views: [{ showGridLines: true }]
+  });
+
+  // Header Banner
+  registerSheet.mergeCells('A1:L1');
+  const regH1 = registerSheet.getCell('A1');
+  regH1.value = companyName.toUpperCase();
+  regH1.font = { name: 'Arial', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
+  regH1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+  regH1.alignment = { horizontal: 'center', vertical: 'middle' };
+  registerSheet.getRow(1).height = 36;
+
+  registerSheet.mergeCells('A2:L2');
+  const regH2 = registerSheet.getCell('A2');
+  regH2.value = 'DETAILED BOQ REGISTER';
+  regH2.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1E3A8A' } };
+  regH2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+  regH2.alignment = { horizontal: 'center', vertical: 'middle' };
+  registerSheet.getRow(2).height = 24;
+
+  const regHeaders = [
+    'S.No',
+    'BOQ Number',
+    'Project Name',
+    'System',
+    'Brand',
+    'Prepared By',
+    'Date',
+    'Status',
+    'Total (SAR)',
+    'Total (EUR)',
+    'Items',
+    'Created At'
+  ];
+
+  registerSheet.getRow(4).values = regHeaders;
+  registerSheet.getRow(4).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+  registerSheet.getRow(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+  registerSheet.getRow(4).height = 26;
+
+  boqs.forEach((b, idx) => {
+    const rowNum = 5 + idx;
+    const r = registerSheet.getRow(rowNum);
+    r.values = [
+      idx + 1,
+      b.boqNumber,
+      b.projectName || '-',
+      b.system || '-',
+      b.brand || '-',
+      b.preparedBy || '-',
+      b.date || '-',
+      b.status,
+      b.totalFinalValue || 0,
+      b.totalEUR || 0,
+      b.items?.length || 0,
+      b.createdAt ? b.createdAt.slice(0, 10) : '-'
+    ];
+    r.font = { name: 'Arial', size: 9.5 };
+    r.getCell(1).alignment = { horizontal: 'center' };
+    r.getCell(6).alignment = { horizontal: 'left' };
+    r.getCell(7).alignment = { horizontal: 'center' };
+    r.getCell(8).alignment = { horizontal: 'center' };
+    r.getCell(9).numFmt = '#,##0.00';
+    r.getCell(9).alignment = { horizontal: 'right' };
+    r.getCell(10).numFmt = '#,##0.00';
+    r.getCell(10).alignment = { horizontal: 'right' };
+    r.getCell(11).alignment = { horizontal: 'center' };
+    r.getCell(12).alignment = { horizontal: 'center' };
+
+    // Alternate shading
+    if (idx % 2 === 1) {
+      r.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+    }
+  });
+
+  // Total summary row
+  const totalRowNum = 5 + boqs.length;
+  const totRow = registerSheet.getRow(totalRowNum);
+  totRow.values = [
+    '',
+    'TOTAL',
+    '',
+    '',
+    '',
+    '',
+    '',
+    `${boqs.length} BOQs`,
+    totalValueSAR,
+    totalValueEUR,
+    boqs.reduce((acc, b) => acc + (b.items?.length || 0), 0),
+    ''
+  ];
+  totRow.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF1E3A8A' } };
+  totRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+  totRow.getCell(9).numFmt = '#,##0.00';
+  totRow.getCell(9).alignment = { horizontal: 'right' };
+  totRow.getCell(10).numFmt = '#,##0.00';
+  totRow.getCell(10).alignment = { horizontal: 'right' };
+  totRow.getCell(11).alignment = { horizontal: 'center' };
+
+  registerSheet.getColumn(1).width = 7;
+  registerSheet.getColumn(2).width = 22;
+  registerSheet.getColumn(3).width = 30;
+  registerSheet.getColumn(4).width = 18;
+  registerSheet.getColumn(5).width = 16;
+  registerSheet.getColumn(6).width = 18;
+  registerSheet.getColumn(7).width = 14;
+  registerSheet.getColumn(8).width = 14;
+  registerSheet.getColumn(9).width = 20;
+  registerSheet.getColumn(10).width = 18;
+  registerSheet.getColumn(11).width = 10;
+  registerSheet.getColumn(12).width = 14;
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const filename = `ZAJCO-BOQ-Portfolio-Report-${dateStr}.xlsx`;
+
+  return { blob, filename };
+};

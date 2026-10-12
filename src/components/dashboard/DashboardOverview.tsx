@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FileSpreadsheet,
   PlusCircle,
@@ -10,9 +10,14 @@ import {
   Eye,
   Edit3,
   Layers,
-  RefreshCw
+  RefreshCw,
+  FileText,
+  Download
 } from 'lucide-react';
 import type { BOQ, SystemSettings } from '../../types';
+import { exportBOQToExcel, triggerExcelDownload } from '../../services/excelService';
+import { exportBOQToPDF } from '../../services/pdfService';
+import { DashboardReportModal } from './DashboardReportModal';
 
 interface DashboardOverviewProps {
   boqs: BOQ[];
@@ -37,6 +42,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   onEditBOQ,
   onOpenTemplates
 }) => {
+  const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
+
   const totalBOQs = boqs.length;
   const draftBOQs = boqs.filter(b => b.status === 'DRAFT').length;
   const submittedBOQs = boqs.filter(b => b.status === 'SUBMITTED').length;
@@ -49,6 +56,23 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const createdThisMonth = boqs.filter(b => (b.createdAt || '').slice(0, 7) === currentMonthStr).length;
 
   const recentBOQs = boqs.slice(0, 6);
+
+  const handleDownloadExcel = async (boq: BOQ) => {
+    try {
+      const { blob, filename } = await exportBOQToExcel(boq, settings);
+      triggerExcelDownload(blob, filename);
+    } catch (err) {
+      console.error('Error downloading BOQ Excel:', err);
+    }
+  };
+
+  const handleDownloadPDF = (boq: BOQ) => {
+    try {
+      exportBOQToPDF(boq, settings);
+    } catch (err) {
+      console.error('Error downloading BOQ PDF:', err);
+    }
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -76,6 +100,15 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <span>{isLoading ? 'Updating...' : 'Refresh'}</span>
             </button>
           )}
+
+          <button
+            onClick={() => setIsReportModalOpen(true)}
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
+            title="Generate BOQ Portfolio Report (Excel & PDF)"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Generate Report</span>
+          </button>
 
           <button
             onClick={onCreateBOQ}
@@ -164,14 +197,22 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
       {/* Recent BOQs Data Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-2">
           <h2 className="text-base font-bold text-white flex items-center space-x-2">
             <FileSpreadsheet className="w-5 h-5 text-blue-400" />
             <span>Recent Project BOQs</span>
           </h2>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
+              title="Generate BOQ Portfolio Report (Excel & PDF)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Generate Report</span>
+            </button>
             {isLoading && <span className="text-xs text-blue-400 flex items-center space-x-1"><RefreshCw className="w-3 h-3 animate-spin" /><span>Syncing...</span></span>}
-            <span className="text-xs text-slate-500">Showing latest records</span>
+            <span className="text-xs text-slate-500 hidden sm:inline">Showing latest records</span>
           </div>
         </div>
 
@@ -233,7 +274,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <div className="flex items-center justify-center space-x-2">
+                      <div className="flex items-center justify-center space-x-1.5">
                         <button
                           type="button"
                           onClick={() => onViewBOQ(b)}
@@ -250,6 +291,22 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadExcel(b)}
+                          className="p-1 text-slate-400 hover:text-emerald-400 rounded-lg hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                          title="Download BOQ Excel Spreadsheet"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadPDF(b)}
+                          className="p-1 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          title="Download BOQ PDF Document"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -259,6 +316,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Dashboard Report Generator Modal */}
+      <DashboardReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        boqs={boqs}
+        settings={settings}
+      />
 
     </div>
   );
