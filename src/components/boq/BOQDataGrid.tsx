@@ -486,7 +486,11 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                 <th className="p-2.5 text-right w-32">Percentage Amount</th>
                 <th className="p-2.5 text-right w-36">Unit Price (Profit Incl)</th>
                 <th className="p-2.5 text-right w-40 bg-emerald-950/30 text-emerald-300">Total Profit Incl</th>
-                {!readOnly && <th className="p-2.5 text-center w-24">Actions</th>}
+                {!readOnly && (
+                  <th className="p-2.5 text-center min-w-[150px] w-40 sticky right-0 bg-slate-950 z-30 shadow-[-4px_0_8px_rgba(0,0,0,0.4)]">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
 
@@ -510,8 +514,8 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                         </td>
 
                         {/* Spanned Header Title */}
-                        <td colSpan={11} className="p-2 sticky left-12 bg-slate-950/90 z-10">
-                          <div className="flex items-center space-x-2.5">
+                        <td colSpan={11} className="p-2 bg-slate-950/90">
+                          <div className="sticky left-12 flex items-center space-x-2.5 max-w-2xl">
                             <div className="flex items-center space-x-1 px-2 py-0.5 rounded bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 text-[10px] font-extrabold uppercase tracking-wider flex-shrink-0 select-none">
                               <Heading className="w-3 h-3 text-indigo-400" />
                               <span>SECTION HEADER</span>
@@ -526,7 +530,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                                 value={item.description}
                                 onChange={(e) => handleCellChange(idx, 'description', e.target.value)}
                                 placeholder="Enter Section Header / Category Name (e.g. 1.0 MAIN CONTROL EQUIPMENT)..."
-                                className="w-full bg-slate-900 border border-indigo-500/40 rounded px-2.5 py-1.5 text-xs sm:text-sm font-bold text-white tracking-wide placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                                className="w-full max-w-3xl bg-slate-900 border border-indigo-500/40 rounded px-2.5 py-1.5 text-xs sm:text-sm font-bold text-white tracking-wide placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
                               />
                             )}
                           </div>
@@ -534,7 +538,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
 
                         {/* Actions */}
                         {!readOnly && (
-                          <td className="p-1.5 text-center bg-slate-950">
+                          <td className="p-1.5 text-center sticky right-0 bg-slate-950 z-20 shadow-[-4px_0_8px_rgba(0,0,0,0.4)]">
                             <div className="flex items-center justify-center space-x-1">
                               <button
                                 type="button"
@@ -768,7 +772,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
 
                       {/* Actions */}
                       {!readOnly && (
-                        <td className="p-1.5 text-center">
+                        <td className="p-1.5 text-center sticky right-0 bg-slate-900 group-hover:bg-slate-800 z-10 shadow-[-4px_0_8px_rgba(0,0,0,0.4)]">
                           <div className="flex items-center justify-center space-x-1">
                             <button
                               type="button"
@@ -851,7 +855,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                 <td className="p-3 text-right text-emerald-400 font-mono text-base bg-emerald-950/40">
                   SAR {totals.final.toFixed(2)}
                 </td>
-                {!readOnly && <td className="p-3"></td>}
+                {!readOnly && <td className="p-3 sticky right-0 bg-slate-950 z-20 shadow-[-4px_0_8px_rgba(0,0,0,0.4)]"></td>}
               </tr>
             </tfoot>
           </table>
