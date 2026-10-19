@@ -5,12 +5,10 @@ import {
 import type { BOQ, BOQItem, BOQRevision, BOQStatus, BOQCalculationSummary } from '../types';
 import { logAuditEvent } from './auditService';
 
-// Helper to determine if an item is an installation/service line item
+// Helper to determine if an item is an installation/service line item (explicit manual flag only)
 export const isInstallationItem = (item: BOQItem | Partial<BOQItem>): boolean => {
   if (item.isHeader) return false;
-  if (item.isInstallation === true) return true;
-  const desc = (item.description || '').toLowerCase();
-  return /installation|install|testing|commissioning|programming|supervision|labor|labour|service charge|services/i.test(desc);
+  return item.isInstallation === true;
 };
 
 // Helper for exact calculations per row

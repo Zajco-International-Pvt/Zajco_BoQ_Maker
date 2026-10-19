@@ -126,6 +126,7 @@ describe('BOQ Calculations Engine Tests', () => {
       unitPriceEUR: 0,
       unitPriceSAR: 8750.00,
       isManualSAR: true,
+      isInstallation: true,
       profitPercentage: 0
     };
 
@@ -142,20 +143,32 @@ describe('BOQ Calculations Engine Tests', () => {
     expect(summary.profitPercentage).toBeCloseTo(0.21, 2);
   });
 
-  it('should dynamically reflect installation row when description is updated or toggled', () => {
-    const row = calculateBOQItemRow({
+  it('should not automatically tag items as installation based on text, and only reflect installation when explicitly toggled', () => {
+    // Row with "Installation" in description should NOT be auto-tagged as installation
+    const regularRow = calculateBOQItemRow({
       description: 'Installation & Testing',
       quantity: 1,
       unitPriceSAR: 5000,
       unitPriceEUR: 0
     }, 5);
 
-    expect(row.isInstallation).toBe(true);
-    expect(row.isManualSAR).toBe(true);
-    expect(row.totalSAR).toBe(5000);
-    expect(row.totalProfitIncl).toBe(5000);
+    expect(regularRow.isInstallation).toBe(false);
 
-    const totals = recalculateBOQTotals([row]);
+    // Row explicitly marked as isInstallation: true
+    const installRow = calculateBOQItemRow({
+      description: 'Installation & Testing',
+      quantity: 1,
+      unitPriceSAR: 5000,
+      unitPriceEUR: 0,
+      isInstallation: true
+    }, 5);
+
+    expect(installRow.isInstallation).toBe(true);
+    expect(installRow.isManualSAR).toBe(true);
+    expect(installRow.totalSAR).toBe(5000);
+    expect(installRow.totalProfitIncl).toBe(5000);
+
+    const totals = recalculateBOQTotals([installRow]);
     expect(totals.calculationSummary.installationAmount).toBe(5000);
     expect(totals.calculationSummary.sellingPriceWithInstallation).toBe(5000);
     expect(totals.calculationSummary.sellingPriceWithoutInstallation).toBe(0);

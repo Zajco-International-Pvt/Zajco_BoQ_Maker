@@ -23,7 +23,7 @@ const DEFAULT_PRESET_TEMPLATES: BOQTemplate[] = [
       { serialNumber: 1, description: 'Tunstall - 76060550 Com Station IP', quantity: 3, pricingSource: 'Discounted Listed Price', unitPriceEUR: 412.54, totalEUR: 1237.62, unitPriceSAR: 2062.70, totalSAR: 6188.10, profitPercentage: 40, percentageAdded: 825.08, unitPriceProfitIncl: 2887.78, totalProfitIncl: 8663.34 },
       { serialNumber: 2, description: 'Tunstall - Connection Terminal IP POE with VOIP', quantity: 12, pricingSource: 'Discounted Listed Price', unitPriceEUR: 185.00, totalEUR: 2220.00, unitPriceSAR: 925.00, totalSAR: 11100.00, profitPercentage: 35, percentageAdded: 323.75, unitPriceProfitIncl: 1248.75, totalProfitIncl: 14985.00 },
       { serialNumber: 3, description: 'Tunstall - Com Terminal IP POE', quantity: 24, pricingSource: 'Discounted Listed Price', unitPriceEUR: 160.00, totalEUR: 3840.00, unitPriceSAR: 800.00, totalSAR: 19200.00, profitPercentage: 35, percentageAdded: 280.00, unitPriceProfitIncl: 1080.00, totalProfitIncl: 25920.00 },
-      { serialNumber: 4, description: 'Installation, Programming, Testing & Commissioning', quantity: 1, pricingSource: 'Management', unitPriceEUR: 0, totalEUR: 0, unitPriceSAR: 15000.00, totalSAR: 15000.00, isManualSAR: true, profitPercentage: 25, percentageAdded: 3750.00, unitPriceProfitIncl: 18750.00, totalProfitIncl: 18750.00 }
+      { serialNumber: 4, description: 'Installation, Programming, Testing & Commissioning', quantity: 1, pricingSource: 'Management', unitPriceEUR: 0, totalEUR: 0, unitPriceSAR: 15000.00, totalSAR: 15000.00, isManualSAR: true, isInstallation: true, profitPercentage: 25, percentageAdded: 3750.00, unitPriceProfitIncl: 18750.00, totalProfitIncl: 18750.00 }
     ]
   },
   {
