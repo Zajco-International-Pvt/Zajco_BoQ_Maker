@@ -447,6 +447,7 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
                   required
                   value={quantity}
                   onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
+                  onWheel={(e) => e.currentTarget.blur()}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
                 />
               </div>
@@ -477,6 +478,7 @@ export const ProcurementItemModal: React.FC<ProcurementItemModalProps> = ({
                   placeholder="e.g. 250.00"
                   value={targetUnitPrice}
                   onChange={(e) => setTargetUnitPrice(e.target.value)}
+                  onWheel={(e) => e.currentTarget.blur()}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-emerald-400 font-mono focus:outline-none focus:border-blue-500"
                 />
               </div>

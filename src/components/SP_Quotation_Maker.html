@@ -3139,6 +3139,13 @@
       }
     });
 
+    // Prevent mouse wheel from auto-incrementing number inputs
+    window.addEventListener('wheel', () => {
+      if (document.activeElement && document.activeElement.type === 'number') {
+        document.activeElement.blur();
+      }
+    }, { passive: true });
+
     // Initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
       switchTemplate('arabian', true);

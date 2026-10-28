@@ -660,6 +660,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                             step="1"
                             value={item.quantity}
                             onChange={(e) => handleCellChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                            onWheel={(e) => e.currentTarget.blur()}
                             className="w-full min-w-[55px] text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-blue-500"
                           />
                         )}
@@ -750,6 +751,7 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                               const val = e.target.value;
                               handleCellChange(idx, 'profitPercentage', val === '' ? null : parseFloat(val));
                             }}
+                            onWheel={(e) => e.currentTarget.blur()}
                             className="w-full min-w-[55px] text-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-blue-400 font-mono font-bold focus:outline-none focus:border-blue-500"
                           />
                         )}

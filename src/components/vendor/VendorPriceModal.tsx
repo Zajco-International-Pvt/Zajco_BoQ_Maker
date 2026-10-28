@@ -134,6 +134,7 @@ export const VendorPriceModal: React.FC<VendorPriceModalProps> = ({
                 step="0.01"
                 value={unitPrice}
                 onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-emerald-400 font-mono"
               />
             </div>
@@ -143,6 +144,7 @@ export const VendorPriceModal: React.FC<VendorPriceModalProps> = ({
                 type="number"
                 value={discount}
                 onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-amber-400 font-mono"
               />
             </div>

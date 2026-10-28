@@ -130,6 +130,7 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
                 step="0.01"
                 value={defaultPriceEUR}
                 onChange={(e) => setDefaultPriceEUR(parseFloat(e.target.value) || 0)}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-emerald-400 font-mono"
               />
             </div>
@@ -140,6 +141,7 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
                 step="0.01"
                 value={defaultPriceSAR}
                 onChange={(e) => setDefaultPriceSAR(parseFloat(e.target.value) || 0)}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white font-mono"
               />
             </div>
@@ -149,6 +151,7 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
                 type="number"
                 value={defaultProfitPercentage}
                 onChange={(e) => setDefaultProfitPercentage(parseFloat(e.target.value) || 15)}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-blue-400 font-mono"
               />
             </div>

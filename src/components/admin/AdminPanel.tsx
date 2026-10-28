@@ -283,6 +283,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ settings, onSettingsUpda
                 step="0.01"
                 value={formData.eurToSarRate}
                 onChange={(e) => setFormData({ ...formData, eurToSarRate: parseFloat(e.target.value) || 5 })}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full bg-slate-950 border border-amber-500/60 text-amber-300 font-bold rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400"
               />
             </div>
@@ -294,6 +295,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ settings, onSettingsUpda
                 step="0.1"
                 value={formData.defaultProfitPercentage}
                 onChange={(e) => setFormData({ ...formData, defaultProfitPercentage: parseFloat(e.target.value) || 15 })}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
               />
             </div>

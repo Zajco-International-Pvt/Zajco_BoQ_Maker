@@ -699,6 +699,7 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
               min="0.0001"
               value={conversionRate}
               onChange={(e) => handleRateChange(parseFloat(e.target.value) || 1)}
+              onWheel={(e) => e.currentTarget.blur()}
               disabled={isLocked}
               className="w-full bg-slate-950 border border-amber-500/50 text-amber-300 font-bold rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-amber-400"
             />

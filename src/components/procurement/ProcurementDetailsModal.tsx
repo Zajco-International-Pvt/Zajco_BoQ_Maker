@@ -441,6 +441,7 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
                         required
                         value={unitPrice || ''}
                         onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                        onWheel={(e) => e.currentTarget.blur()}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-mono focus:outline-none focus:border-blue-500"
                       />
                     </div>
@@ -454,6 +455,7 @@ export const ProcurementDetailsModal: React.FC<ProcurementDetailsModalProps> = (
                         max="100"
                         value={discountPercentage || ''}
                         onChange={(e) => setDiscountPercentage(parseFloat(e.target.value) || 0)}
+                        onWheel={(e) => e.currentTarget.blur()}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-amber-400 font-mono focus:outline-none focus:border-blue-500"
                       />
                     </div>
