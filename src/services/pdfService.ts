@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { BOQ, SystemSettings } from '../types';
+import type { BOQ, SystemSettings, ItemLibraryProduct } from '../types';
 import { getCurrencySymbol } from '../types';
 import { computeBOQCalculationSummary } from './boqService';
 
@@ -355,6 +355,144 @@ export const exportDashboardBOQReportToPDF = (
   });
 
   const filename = `ZAJCO-BOQ-Portfolio-Report-${new Date().toISOString().slice(0, 10)}.pdf`;
+  doc.save(filename);
+  return doc;
+};
+
+/**
+ * Export Product Catalog items to a professional PDF document.
+ */
+export const exportProductCatalogToPDF = (
+  products: ItemLibraryProduct[],
+  settings?: SystemSettings | Partial<SystemSettings> | null
+): jsPDF => {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const companyName = settings?.companyName || 'ZAJCO ENGINEERING & CONTRACTING';
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // Header Banner
+  doc.setFillColor(30, 58, 138); // Deep Navy
+  doc.rect(0, 0, pageWidth, 22, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(255, 255, 255);
+  doc.text(companyName.toUpperCase(), 14, 11);
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('PRODUCT CATALOG & ITEM PRICE LIBRARY', 14, 17);
+
+  doc.setFontSize(9);
+  const dateStr = new Date().toLocaleDateString();
+  doc.text(`Export Date: ${dateStr}`, pageWidth - 14, 11, { align: 'right' });
+  doc.text(`Total Products: ${products.length}`, pageWidth - 14, 17, { align: 'right' });
+
+  // Metadata ribbon
+  const metaTop = 26;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(14, metaTop, pageWidth - 28, 10, 'F');
+
+  doc.setTextColor(51, 65, 85);
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Active Currency: EUR (€) / SAR`, 18, metaTop + 6.5);
+  doc.text(`Organization Database: ZAJCO Corporate BOQ Maker`, 120, metaTop + 6.5);
+  doc.text(`Generated Records: ${products.length} Items`, pageWidth - 18, metaTop + 6.5, { align: 'right' });
+
+  // Table Data
+  const headers = [
+    '#',
+    'Item Description',
+    'Model / Code',
+    'Brand',
+    'System',
+    'Cost EUR (€)',
+    'Cost SAR',
+    'Margin',
+    'Sell SAR',
+    'Source BOQ / Project',
+    'Quoted By'
+  ];
+
+  const rows = products.map((p, idx) => {
+    const eurCost = Number(p.defaultPriceEUR) || 0;
+    const sarCost = Number(p.defaultPriceSAR) || 0;
+    const profitPct = p.defaultProfitPercentage ?? 15;
+    const sellingPrice = p.unitPriceProfitIncl || Number((sarCost + sarCost * (profitPct / 100)).toFixed(2));
+
+    const sourceRef = p.sourceBoqNumber
+      ? `${p.sourceBoqNumber}${p.sourceProjectName ? `\n${p.sourceProjectName}` : ''}`
+      : 'Manual Master';
+
+    return [
+      idx + 1,
+      p.description || '',
+      p.model || '-',
+      p.brand || '-',
+      p.system || '-',
+      `€${eurCost.toFixed(2)}`,
+      `SAR ${sarCost.toFixed(2)}`,
+      `${profitPct}%`,
+      `SAR ${sellingPrice.toFixed(2)}`,
+      sourceRef,
+      p.createdByName || '-'
+    ];
+  });
+
+  autoTable(doc, {
+    startY: metaTop + 13,
+    head: [headers],
+    body: rows,
+    margin: { left: 14, right: 14, bottom: 15 },
+    theme: 'grid',
+    headStyles: {
+      fillColor: [30, 41, 59], // Dark Slate
+      textColor: [255, 255, 255],
+      fontSize: 8,
+      fontStyle: 'bold',
+      halign: 'center'
+    },
+    bodyStyles: {
+      fontSize: 7.5,
+      textColor: [51, 65, 85]
+    },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 8 },
+      1: { cellWidth: 63, fontStyle: 'bold' },
+      2: { halign: 'center', cellWidth: 22 },
+      3: { halign: 'center', cellWidth: 20 },
+      4: { halign: 'center', cellWidth: 22 },
+      5: { halign: 'right', cellWidth: 20 },
+      6: { halign: 'right', cellWidth: 22 },
+      7: { halign: 'center', cellWidth: 16 },
+      8: { halign: 'right', cellWidth: 24, fontStyle: 'bold' },
+      9: { cellWidth: 32 },
+      10: { halign: 'center', cellWidth: 20 }
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252]
+    },
+    didDrawPage: (data) => {
+      const pageCount = (doc.internal as any).getNumberOfPages();
+      const currentPage = data.pageNumber;
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text(
+        `Page ${currentPage} of ${pageCount} | ZAJCO Product Catalog Export`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 7,
+        { align: 'center' }
+      );
+    }
+  });
+
+  const filename = `ZAJCO-Product-Catalog-${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(filename);
   return doc;
 };

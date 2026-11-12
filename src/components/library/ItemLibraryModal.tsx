@@ -8,6 +8,7 @@ import {
   Copy,
   Check,
   FileSpreadsheet,
+  FileText,
   Calendar,
   X,
   Layers,
@@ -16,15 +17,18 @@ import {
   ChevronRight,
   User
 } from 'lucide-react';
-import type { ItemLibraryProduct } from '../../types';
+import type { ItemLibraryProduct, SystemSettings } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import {
   saveItemLibraryProduct,
   deleteItemLibraryProduct
 } from '../../services/adminService';
+import { exportProductCatalogToExcel, triggerExcelDownload } from '../../services/excelService';
+import { exportProductCatalogToPDF } from '../../services/pdfService';
 
 interface ItemLibraryModalProps {
   products: ItemLibraryProduct[];
+  settings?: SystemSettings;
   onRefresh: () => void;
   onClose?: () => void;
 }
@@ -159,6 +163,7 @@ const ProductRow = React.memo<ProductRowProps>(({ product: p, isCopied, onCopy, 
 
 export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
   products,
+  settings,
   onRefresh,
   onClose
 }) => {
@@ -171,6 +176,7 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [statusNotice, setStatusNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Pagination states for lightning-fast rendering
   const [currentPage, setCurrentPage] = useState(1);
@@ -313,6 +319,47 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   }, []);
 
+  const handleExportExcel = async () => {
+    if (filteredProducts.length === 0) return;
+    try {
+      setIsExporting(true);
+      const { blob, filename } = await exportProductCatalogToExcel(filteredProducts, settings);
+      triggerExcelDownload(blob, filename);
+      setStatusNotice({
+        type: 'success',
+        message: `Successfully exported ${filteredProducts.length} items to Excel (${filename})!`
+      });
+    } catch (err: any) {
+      console.error('Excel Export error:', err);
+      setStatusNotice({
+        type: 'error',
+        message: 'Failed to export Excel file: ' + (err.message || 'Unknown error')
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (filteredProducts.length === 0) return;
+    try {
+      setIsExporting(true);
+      exportProductCatalogToPDF(filteredProducts, settings);
+      setStatusNotice({
+        type: 'success',
+        message: `Successfully exported ${filteredProducts.length} items to PDF document!`
+      });
+    } catch (err: any) {
+      console.error('PDF Export error:', err);
+      setStatusNotice({
+        type: 'error',
+        message: 'Failed to export PDF file: ' + (err.message || 'Unknown error')
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-5 max-w-6xl mx-auto">
       {/* Header */}
@@ -328,6 +375,28 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end">
+          {/* Export to Excel */}
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting || filteredProducts.length === 0}
+            title={`Export ${filteredProducts.length} items to Excel (.xlsx)`}
+            className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:bg-emerald-600 text-white font-semibold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Export Excel</span>
+          </button>
+
+          {/* Export to PDF */}
+          <button
+            onClick={handleExportPDF}
+            disabled={isExporting || filteredProducts.length === 0}
+            title={`Export ${filteredProducts.length} items to PDF (.pdf)`}
+            className="flex items-center space-x-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:hover:bg-rose-600 text-white font-semibold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Export PDF</span>
+          </button>
+
           <button
             onClick={onRefresh}
             title="Refresh Catalog Data"

@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
-import type { BOQ, SystemSettings, ProcurementItem } from '../types';
+import type { BOQ, SystemSettings, ProcurementItem, ItemLibraryProduct } from '../types';
 import { getCurrencySymbol } from '../types';
 import { computeBOQCalculationSummary } from './boqService';
 import { getProcurementStatusConfig } from './procurementService';
@@ -1186,6 +1186,173 @@ export const exportDashboardBOQReportToExcel = async (
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const dateStr = new Date().toISOString().slice(0, 10);
   const filename = `ZAJCO-BOQ-Portfolio-Report-${dateStr}.xlsx`;
+
+  return { blob, filename };
+};
+
+/**
+ * Export Product Catalog items to a beautifully styled Excel workbook (.xlsx).
+ */
+export const exportProductCatalogToExcel = async (
+  products: ItemLibraryProduct[],
+  settings?: SystemSettings | Partial<SystemSettings> | null
+): Promise<{ blob: Blob; filename: string }> => {
+  const workbook = new ExcelJS.Workbook();
+  const companyName = settings?.companyName || 'ZAJCO ENGINEERING & CONTRACTING';
+  workbook.creator = companyName;
+  workbook.lastModifiedBy = 'ZAJCO BOQ Maker';
+  workbook.created = new Date();
+  workbook.modified = new Date();
+
+  const worksheet = workbook.addWorksheet('Product Catalog', {
+    views: [{ showGridLines: true }]
+  });
+
+  // Row 1: Company Title Header
+  worksheet.mergeCells('A1:N1');
+  const mainHeaderCell = worksheet.getCell('A1');
+  mainHeaderCell.value = companyName.toUpperCase();
+  mainHeaderCell.font = { name: 'Arial', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
+  mainHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } }; // Deep Navy
+  mainHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getRow(1).height = 36;
+
+  // Row 2: Subtitle
+  worksheet.mergeCells('A2:N2');
+  const subHeaderCell = worksheet.getCell('A2');
+  subHeaderCell.value = 'PRODUCT CATALOG & ITEM PRICE LIBRARY';
+  subHeaderCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1E3A8A' } };
+  subHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+  subHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getRow(2).height = 24;
+
+  // Row 4: Meta Information
+  const metaStyle = {
+    font: { name: 'Arial', size: 10, bold: true },
+    fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFF1F5F9' } }
+  };
+  const valStyle = { font: { name: 'Arial', size: 10 } };
+
+  worksheet.getCell('A4').value = 'Export Date:';
+  worksheet.getCell('A4').style = metaStyle;
+  worksheet.getCell('B4').value = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString();
+  worksheet.getCell('B4').style = valStyle;
+
+  worksheet.getCell('D4').value = 'Total Items:';
+  worksheet.getCell('D4').style = metaStyle;
+  worksheet.getCell('E4').value = products.length;
+  worksheet.getCell('E4').style = valStyle;
+
+  worksheet.getCell('G4').value = 'Currency:';
+  worksheet.getCell('G4').style = metaStyle;
+  worksheet.getCell('H4').value = 'EUR (€) / SAR';
+  worksheet.getCell('H4').style = valStyle;
+
+  worksheet.getRow(4).height = 20;
+
+  // Row 6: Table Columns Header
+  const headers = [
+    'S.No',
+    'Item Description',
+    'Model / Part No',
+    'Brand',
+    'System',
+    'Cost (EUR €)',
+    'Cost (SAR)',
+    'Profit %',
+    'Selling (SAR)',
+    'Pricing Source',
+    'Source BOQ No',
+    'Source Project',
+    'Quoted / Created By',
+    'Date'
+  ];
+
+  const headerRowIdx = 6;
+  const headerRow = worksheet.getRow(headerRowIdx);
+  headerRow.height = 28;
+
+  headers.forEach((h, idx) => {
+    const colIdx = idx + 1;
+    const cell = headerRow.getCell(colIdx);
+    cell.value = h;
+    cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } }; // Dark Slate
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = {
+      top: { style: 'medium', color: { argb: 'FF0F172A' } },
+      bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+      left: { style: 'thin', color: { argb: 'FF334155' } },
+      right: { style: 'thin', color: { argb: 'FF334155' } }
+    };
+  });
+
+  const startRowIdx = 7;
+  products.forEach((p, index) => {
+    const rowIdx = startRowIdx + index;
+    const row = worksheet.getRow(rowIdx);
+    row.height = 22;
+
+    const eurCost = Number(p.defaultPriceEUR) || 0;
+    const sarCost = Number(p.defaultPriceSAR) || 0;
+    const profitPct = p.defaultProfitPercentage ?? 15;
+    const sellingPrice = p.unitPriceProfitIncl || Number((sarCost + sarCost * (profitPct / 100)).toFixed(2));
+
+    row.getCell(1).value = index + 1;
+    row.getCell(2).value = p.description || '';
+    row.getCell(3).value = p.model || '-';
+    row.getCell(4).value = p.brand || '-';
+    row.getCell(5).value = p.system || '-';
+    row.getCell(6).value = eurCost;
+    row.getCell(7).value = sarCost;
+    row.getCell(8).value = profitPct / 100;
+    row.getCell(9).value = sellingPrice;
+    row.getCell(10).value = p.pricingSource || 'Discounted Listed Price';
+    row.getCell(11).value = p.sourceBoqNumber || (p.sourceBoqId ? 'BOQ Item' : 'Manual Master');
+    row.getCell(12).value = p.sourceProjectName || '-';
+    row.getCell(13).value = p.createdByName || '-';
+    row.getCell(14).value = p.sourceDate || (p.updatedAt ? p.updatedAt.split('T')[0] : '');
+
+    // Zebra striping
+    const isEven = index % 2 === 0;
+    const bgArgb = isEven ? 'FFFFFFFF' : 'FFF8FAFC';
+
+    for (let c = 1; c <= 14; c++) {
+      const cell = row.getCell(c);
+      cell.font = { name: 'Arial', size: 9 };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+      };
+
+      // Alignment and formats
+      if (c === 1 || c === 3 || c === 4 || c === 5 || c === 10 || c === 11 || c === 13 || c === 14) {
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      } else if (c === 2 || c === 12) {
+        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+      } else if (c === 6 || c === 7 || c === 9) {
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        cell.numFmt = '#,##0.00';
+      } else if (c === 8) {
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        cell.numFmt = '0.0%';
+      }
+    }
+  });
+
+  // Column Widths
+  const colWidths = [8, 42, 18, 16, 20, 15, 15, 12, 16, 22, 22, 26, 20, 14];
+  colWidths.forEach((w, idx) => {
+    worksheet.getColumn(idx + 1).width = w;
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const filename = `ZAJCO-Product-Catalog-${dateStr}.xlsx`;
 
   return { blob, filename };
 };

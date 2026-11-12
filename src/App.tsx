@@ -197,6 +197,7 @@ export const AppContent: React.FC = () => {
           {currentTab === 'item-library' && (
             <ItemLibraryModal
               products={itemLibrary}
+              settings={settings}
               onRefresh={refreshData}
             />
           )}

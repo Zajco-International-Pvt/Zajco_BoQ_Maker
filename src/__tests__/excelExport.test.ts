@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import ExcelJS from 'exceljs';
-import { exportBOQToExcel, exportProcurementItemsToExcel } from '../services/excelService';
+import { exportBOQToExcel, exportProcurementItemsToExcel, exportProductCatalogToExcel } from '../services/excelService';
+import { exportProductCatalogToPDF } from '../services/pdfService';
 import { calculateBOQItemRow, recalculateBOQTotals } from '../services/boqService';
-import type { BOQ, BOQItem, ProcurementItem } from '../types';
+import type { BOQ, BOQItem, ProcurementItem, ItemLibraryProduct } from '../types';
 
 describe('Excel Export Service Tests', () => {
   it('should export BOQ to Excel with correct formula references (E5 conversion rate) and valid non-zero values', async () => {
@@ -414,6 +415,107 @@ describe('Excel Export Service Tests', () => {
     const calcRow1 = worksheet?.getRow(17);
     expect(calcRow1?.getCell(2).value).toBe('Purchase Bill Amount (USD)');
     expect(calcRow1?.getCell(5).value).toBe(1000); // 10 * 100
+  });
+
+  it('should export Product Catalog items to styled Excel with all columns, prices, and creator metadata', async () => {
+    const sampleProducts: ItemLibraryProduct[] = [
+      {
+        id: 'prod_1',
+        brand: 'Tunstall',
+        model: '76060550',
+        description: 'IP Bedside Call Point Unit with Handset',
+        system: 'Nurse Call',
+        defaultPriceEUR: 85.50,
+        defaultPriceSAR: 427.50,
+        defaultProfitPercentage: 20,
+        unitPriceProfitIncl: 513.00,
+        pricingSource: 'Discounted Listed Price',
+        sourceBoqNumber: 'BOQ-ZJO-26-001',
+        sourceProjectName: 'Al-Noor Hospital',
+        sourceDate: '2026-05-12',
+        createdByName: 'Ahmed Engineer',
+        active: true
+      },
+      {
+        id: 'prod_2',
+        brand: 'Honeywell',
+        model: 'HCD-400',
+        description: '4MP Outdoor Dome IP Camera',
+        system: 'CCTV',
+        defaultPriceEUR: 120.00,
+        defaultPriceSAR: 600.00,
+        defaultProfitPercentage: 15,
+        unitPriceProfitIncl: 690.00,
+        pricingSource: 'Vendor Quotation',
+        sourceBoqNumber: 'BOQ-ZJO-26-002',
+        sourceProjectName: 'King Fahd Library',
+        sourceDate: '2026-06-20',
+        createdByName: 'Sarah Engineer',
+        active: true
+      }
+    ];
+
+    const { blob, filename } = await exportProductCatalogToExcel(sampleProducts);
+    expect(blob).toBeDefined();
+    expect(filename).toMatch(/^ZAJCO-Product-Catalog-\d{4}-\d{2}-\d{2}\.xlsx$/);
+
+    const arrayBuffer = await blob.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+
+    const worksheet = workbook.getWorksheet('Product Catalog');
+    expect(worksheet).toBeDefined();
+
+    // Verify Title and Subtitle
+    expect(worksheet?.getCell('A1').value).toContain('ZAJCO');
+    expect(worksheet?.getCell('A2').value).toBe('PRODUCT CATALOG & ITEM PRICE LIBRARY');
+
+    // Verify Total Items metadata at E4
+    expect(worksheet?.getCell('E4').value).toBe(2);
+
+    // Verify Row 7 (first product)
+    const row1 = worksheet?.getRow(7);
+    expect(row1?.getCell(2).value).toBe('IP Bedside Call Point Unit with Handset');
+    expect(row1?.getCell(3).value).toBe('76060550');
+    expect(row1?.getCell(4).value).toBe('Tunstall');
+    expect(row1?.getCell(5).value).toBe('Nurse Call');
+    expect(row1?.getCell(6).value).toBe(85.50);
+    expect(row1?.getCell(7).value).toBe(427.50);
+    expect(row1?.getCell(9).value).toBe(513.00);
+    expect(row1?.getCell(11).value).toBe('BOQ-ZJO-26-001');
+    expect(row1?.getCell(12).value).toBe('Al-Noor Hospital');
+    expect(row1?.getCell(13).value).toBe('Ahmed Engineer');
+
+    // Verify Row 8 (second product)
+    const row2 = worksheet?.getRow(8);
+    expect(row2?.getCell(2).value).toBe('4MP Outdoor Dome IP Camera');
+    expect(row2?.getCell(13).value).toBe('Sarah Engineer');
+  });
+
+  it('should generate Product Catalog PDF document without errors', () => {
+    const sampleProducts: ItemLibraryProduct[] = [
+      {
+        id: 'prod_1',
+        brand: 'Tunstall',
+        model: '76060550',
+        description: 'IP Bedside Call Point Unit with Handset',
+        system: 'Nurse Call',
+        defaultPriceEUR: 85.50,
+        defaultPriceSAR: 427.50,
+        defaultProfitPercentage: 20,
+        unitPriceProfitIncl: 513.00,
+        pricingSource: 'Discounted Listed Price',
+        sourceBoqNumber: 'BOQ-ZJO-26-001',
+        sourceProjectName: 'Al-Noor Hospital',
+        sourceDate: '2026-05-12',
+        createdByName: 'Ahmed Engineer',
+        active: true
+      }
+    ];
+
+    const pdfDoc = exportProductCatalogToPDF(sampleProducts);
+    expect(pdfDoc).toBeDefined();
+    expect(typeof pdfDoc.save).toBe('function');
   });
 });
 
