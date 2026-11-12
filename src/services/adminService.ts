@@ -1,8 +1,8 @@
 import { db } from '../config/firebase';
 import { 
-  collection, doc, getDoc, setDoc, updateDoc, getDocs 
+  collection, doc, getDoc, setDoc, updateDoc, getDocs, deleteDoc 
 } from 'firebase/firestore';
-import type { UserProfile, SystemSettings, ItemLibraryProduct, VendorPrice, BOQTemplate, AuditLog } from '../types';
+import type { UserProfile, SystemSettings, ItemLibraryProduct, VendorPrice, BOQTemplate, AuditLog, BOQ, BOQItem } from '../types';
 import { logAuditEvent } from './auditService';
 
 export const DEFAULT_SETTINGS: SystemSettings = {
@@ -112,12 +112,15 @@ export const getAuditLogs = async (maxLogs: number = 100): Promise<AuditLog[]> =
   }
 };
 
-// Item Library (Product Database)
+// Item Library (Product Database / Product Catalog)
 export const getItemLibraryProducts = async (): Promise<ItemLibraryProduct[]> => {
   const snap = await getDocs(collection(db, 'itemLibrary'));
   const products: ItemLibraryProduct[] = [];
   snap.forEach(d => {
-    products.push({ id: d.id, ...d.data() } as ItemLibraryProduct);
+    const data = d.data() as ItemLibraryProduct;
+    if (data.active !== false) {
+      products.push({ ...data, id: d.id });
+    }
   });
   return products;
 };
@@ -129,6 +132,123 @@ export const saveItemLibraryProduct = async (product: Omit<ItemLibraryProduct, '
     const newRef = doc(collection(db, 'itemLibrary'));
     await setDoc(newRef, { id: newRef.id, ...product });
   }
+};
+
+export const deleteItemLibraryProduct = async (id: string): Promise<void> => {
+  const docRef = doc(db, 'itemLibrary', id);
+  try {
+    await deleteDoc(docRef);
+  } catch (err) {
+    // Fallback if rule restricts delete to Admin: soft delete via active: false
+    await setDoc(docRef, { active: false, updatedAt: new Date().toISOString() }, { merge: true });
+  }
+};
+
+/**
+ * Automatically syncs line items from a BOQ into the Product Catalog (itemLibrary).
+ * Each valid line item is saved as a catalog entry with its pricing, details, and BOQ reference.
+ */
+export const syncBOQItemsToCatalog = async (
+  boq: Partial<BOQ> & { id: string; items?: BOQItem[] }
+): Promise<number> => {
+  if (!boq.id || !boq.items || !Array.isArray(boq.items) || boq.items.length === 0) {
+    return 0;
+  }
+
+  const validItems = boq.items.filter(
+    (item) => !item.isHeader && item.description && item.description.trim().length > 0
+  );
+
+  if (validItems.length === 0) return 0;
+
+  let syncedCount = 0;
+  const writePromises = validItems.map(async (item, idx) => {
+    const rawItemId = item.id ? item.id.replace(/[^a-zA-Z0-9_-]/g, '_') : `row_${idx}`;
+    const cleanBoqId = boq.id!.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const catalogDocId = `boq_${cleanBoqId}_${rawItemId}`;
+
+    const cleanDescription = item.description.trim().substring(0, 990);
+    const brand = (item.brand || boq.brand || '').trim();
+    const model = (item.model || '').trim();
+    const system = (item.system || boq.system || '').trim();
+    const priceEUR = Math.max(0, Number(item.unitPriceEUR) || 0);
+    const priceSAR = Math.max(0, Number(item.unitPriceSAR) || 0);
+    const profitPct =
+      item.profitPercentage !== null && item.profitPercentage !== undefined && !isNaN(Number(item.profitPercentage))
+        ? Number(item.profitPercentage)
+        : 15;
+    const priceProfitIncl =
+      Number(item.unitPriceProfitIncl) ||
+      Number((priceSAR + priceSAR * (profitPct / 100)).toFixed(2));
+
+    const catalogProduct: ItemLibraryProduct = {
+      id: catalogDocId,
+      brand,
+      model,
+      description: cleanDescription,
+      system,
+      defaultPriceEUR: priceEUR,
+      defaultPriceSAR: priceSAR,
+      defaultProfitPercentage: profitPct,
+      pricingSource: item.pricingSource || 'Discounted Listed Price',
+      active: true,
+      sourceBoqId: boq.id,
+      sourceBoqNumber: boq.boqNumber || '',
+      sourceProjectName: boq.projectName || '',
+      sourceDate: boq.date || new Date().toISOString().split('T')[0],
+      unitPriceProfitIncl: priceProfitIncl,
+      updatedAt: new Date().toISOString(),
+      createdBy: boq.createdBy || ''
+    };
+
+    const docRef = doc(db, 'itemLibrary', catalogDocId);
+    await setDoc(docRef, catalogProduct, { merge: true });
+    syncedCount++;
+  });
+
+  await Promise.all(writePromises);
+  return syncedCount;
+};
+
+const syncedBOQCache = new Map<string, string>();
+
+/**
+ * Clear the cache of synced BOQs (useful for testing or full forced re-sync)
+ */
+export const clearSyncedBOQCache = (): void => {
+  syncedBOQCache.clear();
+};
+
+/**
+ * Syncs line items from all provided BOQs into the Product Catalog.
+ * Skips unchanged BOQs to prevent unnecessary writes and lag.
+ */
+export const syncAllBOQsToCatalog = async (
+  boqs: BOQ[],
+  force: boolean = false
+): Promise<{ boqsCount: number; itemsCount: number }> => {
+  let totalItemsSynced = 0;
+  let boqsWithItemsCount = 0;
+
+  for (const boq of boqs) {
+    if (boq.id && boq.items && boq.items.length > 0) {
+      const lastSynced = syncedBOQCache.get(boq.id);
+      if (!force && lastSynced && boq.updatedAt && lastSynced === boq.updatedAt) {
+        continue;
+      }
+
+      const count = await syncBOQItemsToCatalog(boq as Partial<BOQ> & { id: string; items: BOQItem[] });
+      if (boq.updatedAt) {
+        syncedBOQCache.set(boq.id, boq.updatedAt);
+      }
+      if (count > 0) {
+        totalItemsSynced += count;
+        boqsWithItemsCount++;
+      }
+    }
+  }
+
+  return { boqsCount: boqsWithItemsCount, itemsCount: totalItemsSynced };
 };
 
 // Vendor Price Catalog

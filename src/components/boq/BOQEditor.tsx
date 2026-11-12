@@ -22,7 +22,7 @@ import { createBOQ, updateBOQ, duplicateBOQ, generateBOQNumber, recalculateBOQTo
 import { exportBOQToExcel, triggerExcelDownload } from '../../services/excelService';
 import { exportBOQToPDF } from '../../services/pdfService';
 import { useAuth } from '../../context/AuthContext';
-import { saveBOQTemplate } from '../../services/adminService';
+import { saveBOQTemplate, syncBOQItemsToCatalog } from '../../services/adminService';
 
 interface BOQEditorProps {
   initialBOQ?: BOQ | null;
@@ -153,6 +153,16 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
         setBoqId(currentId);
       } else {
         await updateBOQ(currentId, { ...boqPayload, status: targetStatus }, effectiveUserId, effectiveUserName, effectiveUserEmail);
+      }
+
+      // Automatically sync all line items into Product Catalog (Item Library)
+      try {
+        await syncBOQItemsToCatalog({
+          ...boqPayload,
+          id: currentId
+        });
+      } catch (catalogErr) {
+        console.warn('Auto catalog sync notice:', catalogErr);
       }
 
       setStatus(targetStatus);
@@ -365,6 +375,14 @@ export const BOQEditor: React.FC<BOQEditorProps> = ({
       };
 
       const newId = await duplicateBOQ(currentBOQ, effectiveUserId, effectiveUserName, effectiveUserEmail);
+      try {
+        await syncBOQItemsToCatalog({
+          ...currentBOQ,
+          id: newId
+        });
+      } catch (catalogErr) {
+        console.warn('Auto catalog sync on duplicate notice:', catalogErr);
+      }
       setNotice({ type: 'success', message: 'BOQ successfully duplicated into a new draft!' });
       if (onSaved) onSaved(newId);
     } catch (err: any) {

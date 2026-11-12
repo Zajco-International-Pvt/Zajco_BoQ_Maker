@@ -347,12 +347,17 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
   const handleDescriptionChange = (index: number, val: string) => {
     handleCellChange(index, 'description', val);
     if (val.length >= 2 && itemLibrary.length > 0) {
+      const q = val.toLowerCase();
       const matched = itemLibrary.filter(p =>
-        p.description.toLowerCase().includes(val.toLowerCase()) ||
-        p.model.toLowerCase().includes(val.toLowerCase()) ||
-        p.brand.toLowerCase().includes(val.toLowerCase())
+        p.active !== false && (
+          (p.description && p.description.toLowerCase().includes(q)) ||
+          (p.model && p.model.toLowerCase().includes(q)) ||
+          (p.brand && p.brand.toLowerCase().includes(q)) ||
+          (p.sourceProjectName && p.sourceProjectName.toLowerCase().includes(q)) ||
+          (p.sourceBoqNumber && p.sourceBoqNumber.toLowerCase().includes(q))
+        )
       );
-      setAutocompleteSuggestions(matched.slice(0, 8));
+      setAutocompleteSuggestions(matched.slice(0, 10));
       setAutocompleteRowIdx(index);
     } else {
       setAutocompleteSuggestions([]);
@@ -364,13 +369,14 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
     const updated = [...items];
     const item = {
       ...updated[index],
-      description: `${product.brand ? product.brand + ' - ' : ''}${product.model ? product.model + ' ' : ''}${product.description}`,
+      description: product.description,
       unitPriceEUR: product.defaultPriceEUR || 0,
       unitPriceSAR: product.defaultPriceSAR || 0,
       profitPercentage: product.defaultProfitPercentage ?? 15,
       pricingSource: product.pricingSource || pricingSources[0] || 'Discounted Listed Price',
-      brand: product.brand || '',
-      model: product.model || ''
+      brand: product.brand || updated[index]?.brand || '',
+      model: product.model || updated[index]?.model || '',
+      system: product.system || updated[index]?.system || ''
     };
     updated[index] = calculateBOQItemRow(item, conversionRate);
     onChangeItems(updated);
@@ -632,14 +638,22 @@ export const BOQDataGrid: React.FC<BOQDataGridProps> = ({
                                     key={prod.id}
                                     type="button"
                                     onClick={() => handleSelectProduct(idx, prod)}
-                                    className="w-full text-left px-3 py-2 hover:bg-blue-600/20 text-xs transition-colors flex items-center justify-between"
+                                    className="w-full text-left px-3 py-2.5 hover:bg-blue-600/20 text-xs transition-colors flex items-center justify-between group"
                                   >
-                                    <div>
-                                      <div className="font-semibold text-blue-300">{prod.brand} {prod.model}</div>
-                                      <div className="text-[11px] text-slate-400 truncate max-w-xs">{prod.description}</div>
+                                    <div className="flex-1 pr-2">
+                                      <div className="flex items-center space-x-1.5 flex-wrap">
+                                        <span className="font-semibold text-blue-300">{prod.brand} {prod.model}</span>
+                                        {prod.sourceProjectName && (
+                                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-normal">
+                                            {prod.sourceProjectName} ({prod.sourceBoqNumber || 'BOQ'})
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-[11px] text-slate-400 truncate max-w-sm mt-0.5">{prod.description}</div>
                                     </div>
-                                    <div className="text-right font-mono text-emerald-400 font-bold">
-                                      €{prod.defaultPriceEUR}
+                                    <div className="text-right font-mono flex-shrink-0">
+                                      <div className="text-emerald-400 font-bold">€{Number(prod.defaultPriceEUR || 0).toFixed(2)}</div>
+                                      <div className="text-[10px] text-slate-400">SAR {Number(prod.defaultPriceSAR || 0).toFixed(2)}</div>
                                     </div>
                                   </button>
                                 ))}

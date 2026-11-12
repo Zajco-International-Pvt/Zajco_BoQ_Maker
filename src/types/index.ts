@@ -176,6 +176,13 @@ export interface ItemLibraryProduct {
   defaultProfitPercentage: number;
   pricingSource: string;
   active: boolean;
+  sourceBoqId?: string;
+  sourceBoqNumber?: string;
+  sourceProjectName?: string;
+  sourceDate?: string;
+  unitPriceProfitIncl?: number;
+  updatedAt?: string;
+  createdBy?: string;
 }
 
 export interface VendorPrice {

@@ -10,9 +10,12 @@ import {
   ShieldAlert,
   Truck,
   FileCheck2,
-  X
+  X,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export type NavTab =
   | 'dashboard'
@@ -37,6 +40,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, isOpen = false, onClose }) => {
   const { isAdmin } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const navItems: { id: NavTab; label: string; icon: React.ComponentType<any>; adminOnly?: boolean }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -107,6 +111,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, isOpe
             );
           })}
         </nav>
+
+        {/* Theme Mode Toggle Button */}
+        <div className="p-3 border-t border-slate-800/80">
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/60 hover:bg-slate-800 text-slate-300 transition-colors border border-slate-700/40"
+            title="Toggle Light / Dark mode"
+          >
+            <div className="flex items-center space-x-2">
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-500" />
+              )}
+              <span className="text-slate-200">{theme === 'dark' ? 'Light Theme' : 'Dark Theme'}</span>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-300">
+              {theme}
+            </span>
+          </button>
+        </div>
 
         {/* Footer info */}
         <div className="p-4 border-t border-slate-800/80 text-xs text-slate-500">

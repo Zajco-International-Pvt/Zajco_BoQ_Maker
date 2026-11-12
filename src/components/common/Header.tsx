@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Building2, LogOut, Shield, User as UserIcon, RefreshCw, Menu, X } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { Building2, LogOut, Shield, User as UserIcon, RefreshCw, Menu, X, Sun, Moon } from 'lucide-react';
 import type { SystemSettings } from '../../types';
 
 interface HeaderProps {
@@ -11,6 +12,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ settings, isMobileMenuOpen, onToggleMobileMenu }) => {
   const { userProfile, logout, isAdmin } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 shadow-md">
@@ -33,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({ settings, isMobileMenuOpen, onTo
           </div>
           <div className="min-w-0">
             <div className="flex items-center space-x-1.5 sm:space-x-2">
-              <span className="font-extrabold text-sm sm:text-base md:text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent truncate">
+              <span className="font-extrabold text-sm sm:text-base md:text-lg tracking-tight header-brand-title bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent truncate">
                 ZAJCO BOQ MAKER
               </span>
               <span className="hidden xs:inline-block text-[9px] sm:text-[10px] uppercase font-bold tracking-widest px-1.5 sm:px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 flex-shrink-0">
@@ -59,8 +61,28 @@ export const Header: React.FC<HeaderProps> = ({ settings, isMobileMenuOpen, onTo
           </div>
         </div>
 
-        {/* Right - Profile & Actions */}
+        {/* Right - Theme Toggle, Profile & Actions */}
         <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-200 transition-all shadow-sm"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle theme mode"
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline-block text-xs font-semibold text-amber-300">Light</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-indigo-500" />
+                <span className="hidden sm:inline-block text-xs font-semibold text-indigo-600">Dark</span>
+              </>
+            )}
+          </button>
+
           {userProfile && (
             <div className="flex items-center space-x-2 sm:space-x-3 bg-slate-800/60 pl-2 sm:pl-3 pr-1.5 sm:pr-2 py-1 rounded-xl border border-slate-700/50">
               <div className="text-right hidden sm:block">

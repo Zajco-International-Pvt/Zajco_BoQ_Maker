@@ -37,7 +37,7 @@ export const AppContent: React.FC = () => {
   const [viewingBOQ, setViewingBOQ] = useState<BOQ | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
-  // Load backend data whenever auth state, profile or permissions are updated
+  // Load backend data once whenever auth state, profile or permissions are updated (Dashboard load)
   useEffect(() => {
     if (currentUser) {
       refreshData();

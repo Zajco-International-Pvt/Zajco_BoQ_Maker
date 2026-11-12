@@ -4,6 +4,7 @@
   body {
     @apply bg-slate-950 text-slate-100 antialiased font-sans;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* Clean appearance for number inputs in data tables */
@@ -18,21 +19,100 @@
   }
 }
 
-/* Custom Scrollbars for Data Grids */
+/* Light Mode Variable Overrides for Tailwind CSS v4 */
+html.light,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Inverted Slate Scale for Professional Crisp Light UI */
+  --color-slate-950: #f1f5f9; /* Outer canvas background */
+  --color-slate-900: #ffffff; /* Cards, panels, sidebar, header */
+  --color-slate-800: #e2e8f0; /* Subtle borders, separators, secondary containers */
+  --color-slate-700: #cbd5e1; /* Hover borders, chips */
+  --color-slate-600: #94a3b8; /* Dividers */
+  --color-slate-500: #64748b; /* Placeholders, secondary icons */
+  --color-slate-400: #475569; /* Secondary text, descriptions */
+  --color-slate-300: #334155; /* Regular body text */
+  --color-slate-200: #1e293b; /* Medium/strong text */
+  --color-slate-100: #0f172a; /* Main headings & titles */
+}
+
+/* Light mode text contrast fixes */
+html.light .text-white {
+  color: #0f172a;
+}
+
+/* Preserve crisp white text on colored buttons, gradient cards, and active badges */
+html.light .bg-blue-600,
+html.light .bg-blue-500,
+html.light .bg-emerald-600,
+html.light .bg-emerald-500,
+html.light .bg-rose-600,
+html.light .bg-rose-500,
+html.light .bg-red-600,
+html.light .bg-indigo-600,
+html.light .bg-indigo-700,
+html.light .bg-amber-600,
+html.light [class*="bg-gradient-to"] {
+  color: #ffffff;
+}
+
+html.light .bg-blue-600 .text-white,
+html.light .bg-blue-500 .text-white,
+html.light .bg-emerald-600 .text-white,
+html.light .bg-emerald-500 .text-white,
+html.light .bg-rose-600 .text-white,
+html.light .bg-indigo-600 .text-white,
+html.light .bg-indigo-700 .text-white,
+html.light .bg-amber-600 .text-white,
+html.light [class*="bg-gradient-to"] .text-white,
+html.light .text-white.keep-white {
+  color: #ffffff !important;
+}
+
+/* Light mode input & select enhancements */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Light mode brand gradient in header */
+html.light .header-brand-title {
+  background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* Shadows in light mode */
+html.light .shadow-2xl {
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+}
+html.light .shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+}
+
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: var(--color-slate-950);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: var(--color-slate-800);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: var(--color-slate-700);
 }
