@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   syncBOQItemsToCatalog,
   syncAllBOQsToCatalog,
-  deleteItemLibraryProduct
+  deleteItemLibraryProduct,
+  extractCatalogProductsFromBOQs,
+  getCombinedProductCatalog
 } from '../services/adminService';
-import type { BOQ, BOQItem } from '../types';
+import type { BOQ, BOQItem, ItemLibraryProduct } from '../types';
 
 // Hoisted mock variables
 const { mockSetDoc, mockDeleteDoc, mockDoc, mockCollection } = vi.hoisted(() => ({
@@ -271,6 +273,177 @@ describe('Product Catalog (Item Library) Automatic Sync Tests', () => {
 
     await deleteItemLibraryProduct('item_123');
     expect(mockDeleteDoc).toHaveBeenCalledTimes(1);
+  });
+
+  it('should extract catalog products across all users BOQs with creator names and pricing', () => {
+    const multiUserBOQs: BOQ[] = [
+      {
+        id: 'boq_user_ahmed',
+        boqNumber: 'BOQ-AHMED-01',
+        projectName: 'Hospital Ward Wing A',
+        createdBy: 'user_ahmed_1',
+        createdByName: 'Ahmed Al-Mansoor',
+        items: [
+          {
+            id: 'item_nurse_1',
+            serialNumber: 1,
+            description: 'Nurse Call Master Station IP',
+            brand: 'Tunstall',
+            model: 'NCM-100',
+            system: 'Nurse Call',
+            unitPriceEUR: 450,
+            unitPriceSAR: 2250,
+            profitPercentage: 20,
+            unitPriceProfitIncl: 2700,
+            isHeader: false
+          }
+        ]
+      } as BOQ,
+      {
+        id: 'boq_user_sarah',
+        boqNumber: 'BOQ-SARAH-02',
+        projectName: 'Commercial Tower CCTV',
+        createdBy: 'user_sarah_2',
+        createdByName: 'Sarah Jenkins',
+        items: [
+          {
+            id: 'item_cam_2',
+            serialNumber: 1,
+            description: '4K Varifocal Bullet Camera',
+            brand: 'Honeywell',
+            model: 'HBW-4K',
+            system: 'CCTV',
+            unitPriceEUR: 150,
+            unitPriceSAR: 750,
+            profitPercentage: 15,
+            unitPriceProfitIncl: 862.5,
+            isHeader: false
+          }
+        ]
+      } as BOQ
+    ];
+
+    const extracted = extractCatalogProductsFromBOQs(multiUserBOQs);
+
+    expect(extracted.length).toBe(2);
+    expect(extracted[0].description).toBe('Nurse Call Master Station IP');
+    expect(extracted[0].createdByName).toBe('Ahmed Al-Mansoor');
+    expect(extracted[0].sourceProjectName).toBe('Hospital Ward Wing A');
+    expect(extracted[0].defaultPriceSAR).toBe(2250);
+
+    expect(extracted[1].description).toBe('4K Varifocal Bullet Camera');
+    expect(extracted[1].createdByName).toBe('Sarah Jenkins');
+    expect(extracted[1].sourceProjectName).toBe('Commercial Tower CCTV');
+    expect(extracted[1].defaultPriceSAR).toBe(750);
+  });
+
+  it('should merge manual library products and multi-user BOQs into a unified catalog without duplicates', () => {
+    const manualMasterProduct: ItemLibraryProduct = {
+      id: 'manual_master_01',
+      brand: 'Cisco',
+      model: 'C9200L',
+      description: 'Cisco Catalyst 24-Port Gigabit Switch',
+      system: 'Networking',
+      defaultPriceEUR: 300,
+      defaultPriceSAR: 1500,
+      defaultProfitPercentage: 15,
+      pricingSource: 'Vendor Quotation',
+      active: true,
+      createdByName: 'Super Admin'
+    };
+
+    const multiUserBOQs: BOQ[] = [
+      {
+        id: 'boq_eng1',
+        boqNumber: 'BOQ-001',
+        projectName: 'Metro Station Project',
+        createdBy: 'user_1',
+        createdByName: 'Fahad Engineer',
+        items: [
+          {
+            id: 'item_pa_1',
+            serialNumber: 1,
+            description: 'Ceiling Loudspeaker 6W',
+            brand: 'Bosch',
+            model: 'LBC3086',
+            system: 'Public Address (PA)',
+            unitPriceEUR: 25,
+            unitPriceSAR: 125,
+            profitPercentage: 15,
+            unitPriceProfitIncl: 143.75,
+            isHeader: false
+          }
+        ]
+      } as BOQ,
+      {
+        id: 'boq_eng2',
+        boqNumber: 'BOQ-002',
+        projectName: 'School Campus PA System',
+        createdBy: 'user_2',
+        createdByName: 'Zaid Engineer',
+        items: [
+          {
+            id: 'item_amp_2',
+            serialNumber: 1,
+            description: '240W Power Amplifier Mixer',
+            brand: 'Bosch',
+            model: 'PLE-1ME240',
+            system: 'Public Address (PA)',
+            unitPriceEUR: 220,
+            unitPriceSAR: 1100,
+            profitPercentage: 20,
+            unitPriceProfitIncl: 1320,
+            isHeader: false
+          }
+        ]
+      } as BOQ
+    ];
+
+    const combined = getCombinedProductCatalog([manualMasterProduct], multiUserBOQs);
+
+    expect(combined.length).toBe(3);
+    const creatorNames = combined.map(p => p.createdByName);
+    expect(creatorNames).toContain('Super Admin');
+    expect(creatorNames).toContain('Fahad Engineer');
+    expect(creatorNames).toContain('Zaid Engineer');
+  });
+
+  it('should filter out inactive items in getCombinedProductCatalog', () => {
+    const inactiveProduct: ItemLibraryProduct = {
+      id: 'boq_boq_del_item_1',
+      brand: 'TestBrand',
+      model: 'M-1',
+      description: 'Deactivated Item',
+      system: 'CCTV',
+      defaultPriceEUR: 10,
+      defaultPriceSAR: 50,
+      defaultProfitPercentage: 15,
+      pricingSource: 'Manual',
+      active: false
+    };
+
+    const boq: BOQ = {
+      id: 'boq_del',
+      boqNumber: 'BOQ-DEL-01',
+      items: [
+        {
+          id: 'item_1',
+          serialNumber: 1,
+          description: 'Deactivated Item',
+          brand: 'TestBrand',
+          model: 'M-1',
+          system: 'CCTV',
+          unitPriceEUR: 10,
+          unitPriceSAR: 50,
+          profitPercentage: 15,
+          unitPriceProfitIncl: 57.5,
+          isHeader: false
+        }
+      ]
+    } as BOQ;
+
+    const combined = getCombinedProductCatalog([inactiveProduct], [boq]);
+    expect(combined.length).toBe(0);
   });
 
 });

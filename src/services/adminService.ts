@@ -118,9 +118,7 @@ export const getItemLibraryProducts = async (): Promise<ItemLibraryProduct[]> =>
   const products: ItemLibraryProduct[] = [];
   snap.forEach(d => {
     const data = d.data() as ItemLibraryProduct;
-    if (data.active !== false) {
-      products.push({ ...data, id: d.id });
-    }
+    products.push({ ...data, id: d.id });
   });
   return products;
 };
@@ -198,7 +196,8 @@ export const syncBOQItemsToCatalog = async (
       sourceDate: boq.date || new Date().toISOString().split('T')[0],
       unitPriceProfitIncl: priceProfitIncl,
       updatedAt: new Date().toISOString(),
-      createdBy: boq.createdBy || ''
+      createdBy: boq.createdBy || '',
+      createdByName: boq.createdByName || boq.preparedBy || 'User'
     };
 
     const docRef = doc(db, 'itemLibrary', catalogDocId);
@@ -208,6 +207,126 @@ export const syncBOQItemsToCatalog = async (
 
   await Promise.all(writePromises);
   return syncedCount;
+};
+
+/**
+ * Extracts individual line item products from a collection of BOQs in memory.
+ * Preserves details, pricing, system, brand, and creator metadata.
+ */
+export const extractCatalogProductsFromBOQs = (boqs: BOQ[]): ItemLibraryProduct[] => {
+  if (!boqs || !Array.isArray(boqs)) return [];
+  const products: ItemLibraryProduct[] = [];
+
+  for (const boq of boqs) {
+    if (!boq || !boq.id || !boq.items || !Array.isArray(boq.items)) continue;
+
+    const validItems = boq.items.filter(
+      (item) => !item.isHeader && item.description && item.description.trim().length > 0
+    );
+
+    for (let idx = 0; idx < validItems.length; idx++) {
+      const item = validItems[idx];
+      const rawItemId = item.id ? item.id.replace(/[^a-zA-Z0-9_-]/g, '_') : `row_${idx}`;
+      const cleanBoqId = boq.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const catalogDocId = `boq_${cleanBoqId}_${rawItemId}`;
+
+      const cleanDescription = item.description.trim().substring(0, 990);
+      const brand = (item.brand || boq.brand || '').trim();
+      const model = (item.model || '').trim();
+      const system = (item.system || boq.system || '').trim();
+      const priceEUR = Math.max(0, Number(item.unitPriceEUR) || 0);
+      const priceSAR = Math.max(0, Number(item.unitPriceSAR) || 0);
+      const profitPct =
+        item.profitPercentage !== null && item.profitPercentage !== undefined && !isNaN(Number(item.profitPercentage))
+          ? Number(item.profitPercentage)
+          : 15;
+      const priceProfitIncl =
+        Number(item.unitPriceProfitIncl) ||
+        Number((priceSAR + priceSAR * (profitPct / 100)).toFixed(2));
+
+      products.push({
+        id: catalogDocId,
+        brand,
+        model,
+        description: cleanDescription,
+        system,
+        defaultPriceEUR: priceEUR,
+        defaultPriceSAR: priceSAR,
+        defaultProfitPercentage: profitPct,
+        pricingSource: item.pricingSource || 'Discounted Listed Price',
+        active: true,
+        sourceBoqId: boq.id,
+        sourceBoqNumber: boq.boqNumber || '',
+        sourceProjectName: boq.projectName || '',
+        sourceDate: boq.date || (boq.createdAt ? boq.createdAt.split('T')[0] : ''),
+        unitPriceProfitIncl: priceProfitIncl,
+        updatedAt: boq.updatedAt || boq.createdAt || '',
+        createdBy: boq.createdBy || '',
+        createdByName: boq.createdByName || boq.preparedBy || 'User'
+      });
+    }
+  }
+
+  return products;
+};
+
+/**
+ * Combines manual master products from itemLibrary with all quoted items
+ * across all users' BOQs in-memory, filtering out deleted/inactive items and duplicates.
+ */
+export const getCombinedProductCatalog = (
+  libraryProducts: ItemLibraryProduct[] = [],
+  allBOQs: BOQ[] = []
+): ItemLibraryProduct[] => {
+  const combinedMap = new Map<string, ItemLibraryProduct>();
+  const inactiveIds = new Set<string>();
+  const boqItemKeys = new Set<string>();
+
+  // 1. Process all library products (manual products and existing database entries)
+  for (const lp of libraryProducts) {
+    if (lp.active === false) {
+      inactiveIds.add(lp.id);
+      continue;
+    }
+    combinedMap.set(lp.id, { ...lp });
+    if (lp.sourceBoqId) {
+      const key = `${lp.sourceBoqId}:::${(lp.description || '').toLowerCase().trim()}:::${(lp.model || '').toLowerCase().trim()}`;
+      boqItemKeys.add(key);
+    }
+  }
+
+  // 2. Extract items from all BOQs across all users
+  const extracted = extractCatalogProductsFromBOQs(allBOQs);
+  for (const item of extracted) {
+    // If explicitly deleted or deactivated, skip
+    if (inactiveIds.has(item.id)) {
+      continue;
+    }
+
+    // If already in combinedMap, enrich any missing metadata
+    if (combinedMap.has(item.id)) {
+      const existing = combinedMap.get(item.id)!;
+      if (!existing.createdByName && item.createdByName) {
+        existing.createdByName = item.createdByName;
+      }
+      if (!existing.sourceProjectName && item.sourceProjectName) {
+        existing.sourceProjectName = item.sourceProjectName;
+      }
+      if (!existing.sourceBoqNumber && item.sourceBoqNumber) {
+        existing.sourceBoqNumber = item.sourceBoqNumber;
+      }
+      continue;
+    }
+
+    const key = `${item.sourceBoqId}:::${item.description.toLowerCase()}:::${item.model.toLowerCase()}`;
+    if (boqItemKeys.has(key)) {
+      continue;
+    }
+
+    combinedMap.set(item.id, item);
+  }
+
+  return Array.from(combinedMap.values());
 };
 
 const syncedBOQCache = new Map<string, string>();

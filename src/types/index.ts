@@ -183,6 +183,7 @@ export interface ItemLibraryProduct {
   unitPriceProfitIncl?: number;
   updatedAt?: string;
   createdBy?: string;
+  createdByName?: string;
 }
 
 export interface VendorPrice {

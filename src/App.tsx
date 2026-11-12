@@ -16,8 +16,8 @@ import { VendorPriceModal } from './components/vendor/VendorPriceModal';
 import { ProcurementDashboard } from './components/procurement/ProcurementDashboard';
 import { SPQuotationMaker } from './components/sp-quotation/SPQuotationMaker';
 import type { BOQ, BOQTemplate, ItemLibraryProduct, SystemSettings, VendorPrice } from './types';
-import { getBOQsList } from './services/boqService';
-import { getBOQTemplates, getItemLibraryProducts, getSystemSettings, getVendorPrices, DEFAULT_SETTINGS } from './services/adminService';
+import { getBOQsList, getAllBOQs } from './services/boqService';
+import { getBOQTemplates, getItemLibraryProducts, getSystemSettings, getVendorPrices, DEFAULT_SETTINGS, getCombinedProductCatalog } from './services/adminService';
 
 export const AppContent: React.FC = () => {
   const { currentUser, userProfile, loading, isAdmin } = useAuth();
@@ -53,18 +53,24 @@ export const AppContent: React.FC = () => {
   const refreshData = async () => {
     setIsDataLoading(true);
     try {
-      const [fetchedSettings, fetchedBOQs, fetchedTemplates, fetchedLibrary, fetchedVendors] = await Promise.all([
+      // Fetch user's own BOQs (or all BOQs if admin) for the BOQs List page,
+      // and fetch all company BOQs for the cross-user Product Catalog
+      const [fetchedSettings, fetchedBOQs, fetchedAllBOQs, fetchedTemplates, fetchedLibrary, fetchedVendors] = await Promise.all([
         getSystemSettings(isAdmin),
         getBOQsList(userProfile?.uid || currentUser?.uid, isAdmin),
+        isAdmin ? Promise.resolve([]) : getAllBOQs(),
         getBOQTemplates(),
         getItemLibraryProducts(),
         getVendorPrices()
       ]);
 
+      const allBOQsList = isAdmin ? fetchedBOQs : fetchedAllBOQs;
+      const combinedCatalog = getCombinedProductCatalog(fetchedLibrary, allBOQsList);
+
       setSettings(fetchedSettings);
       setBoqs(fetchedBOQs);
       setTemplates(fetchedTemplates);
-      setItemLibrary(fetchedLibrary);
+      setItemLibrary(combinedCatalog);
       setVendorPrices(fetchedVendors);
     } catch (err) {
       console.error('Data loading error:', err);

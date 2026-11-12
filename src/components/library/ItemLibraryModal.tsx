@@ -13,9 +13,11 @@ import {
   Layers,
   Sparkles,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  User
 } from 'lucide-react';
 import type { ItemLibraryProduct } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import {
   saveItemLibraryProduct,
   deleteItemLibraryProduct
@@ -98,6 +100,12 @@ const ProductRow = React.memo<ProductRowProps>(({ product: p, isCopied, onCopy, 
                 {p.sourceProjectName}
               </div>
             )}
+            {p.createdByName && (
+              <div className="text-[10px] text-blue-400/90 font-medium flex items-center space-x-1 truncate">
+                <User className="w-2.5 h-2.5 flex-shrink-0" />
+                <span>By: {p.createdByName}</span>
+              </div>
+            )}
             {p.sourceDate && (
               <div className="text-[10px] text-slate-500 flex items-center space-x-1">
                 <Calendar className="w-2.5 h-2.5" />
@@ -106,9 +114,17 @@ const ProductRow = React.memo<ProductRowProps>(({ product: p, isCopied, onCopy, 
             )}
           </div>
         ) : (
-          <span className="inline-block px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/40 text-purple-300 text-[10px] font-semibold">
-            Manual Master
-          </span>
+          <div>
+            <span className="inline-block px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/40 text-purple-300 text-[10px] font-semibold">
+              Manual Master
+            </span>
+            {p.createdByName && (
+              <div className="text-[10px] text-slate-400 font-medium flex items-center space-x-1 truncate mt-0.5">
+                <User className="w-2.5 h-2.5 flex-shrink-0" />
+                <span>By: {p.createdByName}</span>
+              </div>
+            )}
+          </div>
         )}
       </td>
 
@@ -146,6 +162,8 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
   onRefresh,
   onClose
 }) => {
+  const { currentUser, userProfile } = useAuth();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'boq' | 'manual'>('all');
   const [selectedSystem, setSelectedSystem] = useState<string>('all');
@@ -204,8 +222,9 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
         const sysMatch = (p.system || '').toLowerCase().includes(q);
         const boqNumMatch = (p.sourceBoqNumber || '').toLowerCase().includes(q);
         const projMatch = (p.sourceProjectName || '').toLowerCase().includes(q);
+        const userMatch = (p.createdByName || '').toLowerCase().includes(q);
 
-        return descMatch || modelMatch || brandMatch || sysMatch || boqNumMatch || projMatch;
+        return descMatch || modelMatch || brandMatch || sysMatch || boqNumMatch || projMatch || userMatch;
       });
     }
 
@@ -252,7 +271,9 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
         defaultPriceSAR,
         defaultProfitPercentage,
         pricingSource: 'Discounted Listed Price',
-        active: true
+        active: true,
+        createdBy: userProfile?.uid || currentUser?.uid || '',
+        createdByName: userProfile?.name || currentUser?.displayName || 'User'
       });
 
       setDescription('');
@@ -284,7 +305,8 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
   const handleCopyDetails = useCallback((p: ItemLibraryProduct) => {
     const text = `${p.brand ? p.brand + ' ' : ''}${p.model ? p.model + ' - ' : ''}${p.description}\n` +
       `EUR: €${Number(p.defaultPriceEUR || 0).toFixed(2)} | SAR: ${Number(p.defaultPriceSAR || 0).toFixed(2)}` +
-      (p.sourceProjectName ? ` | Project: ${p.sourceProjectName} (${p.sourceBoqNumber || ''})` : '');
+      (p.sourceProjectName ? ` | Project: ${p.sourceProjectName} (${p.sourceBoqNumber || ''})` : '') +
+      (p.createdByName ? ` | Quoted By: ${p.createdByName}` : '');
 
     navigator.clipboard.writeText(text);
     setCopiedId(p.id);

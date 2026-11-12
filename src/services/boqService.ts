@@ -278,6 +278,25 @@ export const getBOQsList = async (userId?: string, isAdmin: boolean = false): Pr
   }
 };
 
+/**
+ * Fetches all BOQs created across all users (used for populating company-wide Product Catalog).
+ */
+export const getAllBOQs = async (): Promise<BOQ[]> => {
+  try {
+    const boqsRef = collection(db, 'boqs');
+    const querySnap = await getDocs(boqsRef);
+    const list: BOQ[] = [];
+    querySnap.forEach(d => {
+      list.push(d.data() as BOQ);
+    });
+
+    return list.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+  } catch (err) {
+    console.warn('getAllBOQs fetch warning:', err);
+    return [];
+  }
+};
+
 export const updateBOQStatus = async (
   boqId: string, 
   status: BOQStatus, 
