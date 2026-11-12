@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useDeferredValue } from 'react';
 import {
   PackageSearch,
   Search,
@@ -11,7 +11,9 @@ import {
   Calendar,
   X,
   Layers,
-  Sparkles
+  Sparkles,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import type { ItemLibraryProduct } from '../../types';
 import {
@@ -24,6 +26,120 @@ interface ItemLibraryModalProps {
   onRefresh: () => void;
   onClose?: () => void;
 }
+
+interface ProductRowProps {
+  product: ItemLibraryProduct;
+  isCopied: boolean;
+  onCopy: (p: ItemLibraryProduct) => void;
+  onDelete: (id: string, name: string) => void;
+}
+
+// Memoized table row component to prevent unnecessary re-rendering of all rows
+const ProductRow = React.memo<ProductRowProps>(({ product: p, isCopied, onCopy, onDelete }) => {
+  const eurPrice = Number(p.defaultPriceEUR || 0);
+  const sarPrice = Number(p.defaultPriceSAR || 0);
+  const profitPct = p.defaultProfitPercentage ?? 15;
+  const sellingPrice = p.unitPriceProfitIncl || Number((sarPrice + sarPrice * (profitPct / 100)).toFixed(2));
+
+  return (
+    <tr className="hover:bg-slate-800/40 transition-colors group">
+      {/* Description & Model */}
+      <td className="p-3 max-w-sm">
+        <div className="font-semibold text-white leading-relaxed">
+          {p.description}
+        </div>
+        {p.model && (
+          <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+            Model / Code: <span className="text-blue-300 font-semibold">{p.model}</span>
+          </div>
+        )}
+      </td>
+
+      {/* Brand & System */}
+      <td className="p-3 whitespace-nowrap">
+        <div className="font-bold text-blue-300">{p.brand || '—'}</div>
+        {p.system && (
+          <span className="inline-block px-2 py-0.5 mt-1 rounded bg-slate-800 text-[10px] text-slate-400 font-medium">
+            {p.system}
+          </span>
+        )}
+      </td>
+
+      {/* EUR Price */}
+      <td className="p-3 text-right font-mono text-emerald-400 font-bold whitespace-nowrap">
+        €{eurPrice.toFixed(2)}
+      </td>
+
+      {/* SAR Price */}
+      <td className="p-3 text-right font-mono text-white font-bold whitespace-nowrap">
+        SAR {sarPrice.toFixed(2)}
+      </td>
+
+      {/* Profit % & Selling Price */}
+      <td className="p-3 text-right font-mono whitespace-nowrap">
+        <div className="text-blue-300 font-bold">{profitPct}%</div>
+        <div className="text-[10px] text-slate-400">
+          Sell: SAR {sellingPrice.toFixed(2)}
+        </div>
+      </td>
+
+      {/* Source BOQ / Project */}
+      <td className="p-3 max-w-xs">
+        {p.sourceBoqNumber ? (
+          <div className="space-y-0.5">
+            <div className="flex items-center space-x-1">
+              <FileSpreadsheet className="w-3 h-3 text-blue-400 flex-shrink-0" />
+              <span className="font-mono text-blue-300 font-semibold text-[11px]">
+                {p.sourceBoqNumber}
+              </span>
+            </div>
+            {p.sourceProjectName && (
+              <div className="text-[11px] text-slate-300 font-medium truncate">
+                {p.sourceProjectName}
+              </div>
+            )}
+            {p.sourceDate && (
+              <div className="text-[10px] text-slate-500 flex items-center space-x-1">
+                <Calendar className="w-2.5 h-2.5" />
+                <span>{p.sourceDate}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <span className="inline-block px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/40 text-purple-300 text-[10px] font-semibold">
+            Manual Master
+          </span>
+        )}
+      </td>
+
+      {/* Actions */}
+      <td className="p-3 text-center whitespace-nowrap">
+        <div className="flex items-center justify-center space-x-1.5">
+          <button
+            type="button"
+            onClick={() => onCopy(p)}
+            title="Copy specs and prices"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            {isCopied ? (
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(p.id, p.description)}
+            title="Remove from Catalog"
+            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+});
 
 export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
   products,
@@ -38,6 +154,10 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
   const [statusNotice, setStatusNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Pagination states for lightning-fast rendering
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   // Form states for manual product addition
   const [brand, setBrand] = useState('Tunstall');
   const [model, setModel] = useState('');
@@ -47,33 +167,36 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
   const [defaultPriceSAR, setDefaultPriceSAR] = useState(500);
   const [defaultProfitPercentage, setDefaultProfitPercentage] = useState(15);
 
-  // Extract unique systems for system filter dropdown
-  const uniqueSystems = useMemo(() => {
+  // Single-pass computation for unique systems and summary statistics
+  const { uniqueSystems, boqItemCount, manualItemCount } = useMemo(() => {
     const systems = new Set<string>();
-    products.forEach(p => {
+    let boqCount = 0;
+    for (let i = 0; i < products.length; i++) {
+      const p = products[i];
       if (p.system && p.system.trim()) systems.add(p.system.trim());
-    });
-    return Array.from(systems).sort();
+      if (p.sourceBoqId) boqCount++;
+    }
+    return {
+      uniqueSystems: Array.from(systems).sort(),
+      boqItemCount: boqCount,
+      manualItemCount: products.length - boqCount
+    };
   }, [products]);
 
-  // Statistics
-  const boqItemCount = useMemo(() => products.filter(p => !!p.sourceBoqId).length, [products]);
-  const manualItemCount = products.length - boqItemCount;
+  // Non-blocking deferred search input for ultra-smooth typing
+  const deferredSearch = useDeferredValue(searchTerm);
 
   // Filter & Sort Products
   const filteredProducts = useMemo(() => {
-    const q = searchTerm.toLowerCase().trim();
+    const q = deferredSearch.toLowerCase().trim();
 
-    return products
-      .filter(p => {
-        // Source filter
+    let list = products;
+    if (selectedFilter !== 'all' || selectedSystem !== 'all' || q) {
+      list = products.filter(p => {
         if (selectedFilter === 'boq' && !p.sourceBoqId) return false;
         if (selectedFilter === 'manual' && p.sourceBoqId) return false;
-
-        // System filter
         if (selectedSystem !== 'all' && (p.system || '').trim() !== selectedSystem) return false;
 
-        // Search text matching across multiple fields
         if (!q) return true;
         const descMatch = (p.description || '').toLowerCase().includes(q);
         const modelMatch = (p.model || '').toLowerCase().includes(q);
@@ -83,23 +206,37 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
         const projMatch = (p.sourceProjectName || '').toLowerCase().includes(q);
 
         return descMatch || modelMatch || brandMatch || sysMatch || boqNumMatch || projMatch;
-      })
-      .sort((a, b) => {
-        if (sortBy === 'priceAsc') {
-          return (a.defaultPriceSAR || 0) - (b.defaultPriceSAR || 0);
-        }
-        if (sortBy === 'priceDesc') {
-          return (b.defaultPriceSAR || 0) - (a.defaultPriceSAR || 0);
-        }
-        if (sortBy === 'desc') {
-          return (a.description || '').localeCompare(b.description || '');
-        }
-        // Default: newest / recently updated first
-        const dateA = a.updatedAt || a.sourceDate || '';
-        const dateB = b.updatedAt || b.sourceDate || '';
-        return dateB.localeCompare(dateA);
       });
-  }, [products, searchTerm, selectedFilter, selectedSystem, sortBy]);
+    }
+
+    if (sortBy === 'priceAsc') {
+      return [...list].sort((a, b) => (a.defaultPriceSAR || 0) - (b.defaultPriceSAR || 0));
+    }
+    if (sortBy === 'priceDesc') {
+      return [...list].sort((a, b) => (b.defaultPriceSAR || 0) - (a.defaultPriceSAR || 0));
+    }
+    if (sortBy === 'desc') {
+      return [...list].sort((a, b) => (a.description || '').localeCompare(b.description || ''));
+    }
+    // Default: newest / recently updated first
+    return [...list].sort((a, b) => {
+      const dateA = a.updatedAt || a.sourceDate || '';
+      const dateB = b.updatedAt || b.sourceDate || '';
+      return dateB.localeCompare(dateA);
+    });
+  }, [products, deferredSearch, selectedFilter, selectedSystem, sortBy]);
+
+  // Reset page when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [deferredSearch, selectedFilter, selectedSystem, sortBy]);
+
+  // Pagination slicing
+  const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, currentPage, pageSize]);
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,7 +266,7 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
     }
   };
 
-  const handleDeleteItem = async (id: string, name: string) => {
+  const handleDeleteItem = useCallback(async (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to remove "${name}" from the Product Catalog?`)) {
       return;
     }
@@ -142,9 +279,9 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
       console.error(err);
       setStatusNotice({ type: 'error', message: 'Failed to remove item: ' + err.message });
     }
-  };
+  }, [onRefresh]);
 
-  const handleCopyDetails = (p: ItemLibraryProduct) => {
+  const handleCopyDetails = useCallback((p: ItemLibraryProduct) => {
     const text = `${p.brand ? p.brand + ' ' : ''}${p.model ? p.model + ' - ' : ''}${p.description}\n` +
       `EUR: €${Number(p.defaultPriceEUR || 0).toFixed(2)} | SAR: ${Number(p.defaultPriceSAR || 0).toFixed(2)}` +
       (p.sourceProjectName ? ` | Project: ${p.sourceProjectName} (${p.sourceBoqNumber || ''})` : '');
@@ -152,7 +289,7 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedId(p.id);
     setTimeout(() => setCopiedId(null), 2000);
-  };
+  }, []);
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-5 max-w-6xl mx-auto">
@@ -219,7 +356,7 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
         <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3">
           <div className="text-[11px] text-slate-400 font-medium flex items-center space-x-1">
             <FileSpreadsheet className="w-3 h-3 text-blue-400" />
-            <span>From Drafted BOQs</span>
+            <span>From BOQs</span>
           </div>
           <div className="text-xl font-bold text-blue-400 mt-0.5">{boqItemCount}</div>
         </div>
@@ -412,7 +549,7 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
 
       {/* Catalog Table */}
       <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/60 shadow-inner">
-        <div className="max-h-96 overflow-y-auto">
+        <div className="max-h-[30rem] overflow-y-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-950 text-slate-400 font-bold sticky top-0 border-b border-slate-800 z-10">
               <tr>
@@ -448,127 +585,75 @@ export const ItemLibraryModal: React.FC<ItemLibraryModalProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map(p => {
-                  const eurPrice = Number(p.defaultPriceEUR || 0);
-                  const sarPrice = Number(p.defaultPriceSAR || 0);
-                  const profitPct = p.defaultProfitPercentage ?? 15;
-                  const sellingPrice = p.unitPriceProfitIncl || Number((sarPrice + sarPrice * (profitPct / 100)).toFixed(2));
-
-                  return (
-                    <tr key={p.id} className="hover:bg-slate-800/40 transition-colors group">
-                      {/* Description & Model */}
-                      <td className="p-3 max-w-sm">
-                        <div className="font-semibold text-white leading-relaxed">
-                          {p.description}
-                        </div>
-                        {p.model && (
-                          <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                            Model / Code: <span className="text-blue-300 font-semibold">{p.model}</span>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Brand & System */}
-                      <td className="p-3 whitespace-nowrap">
-                        <div className="font-bold text-blue-300">{p.brand || '—'}</div>
-                        {p.system && (
-                          <span className="inline-block px-2 py-0.5 mt-1 rounded bg-slate-800 text-[10px] text-slate-400 font-medium">
-                            {p.system}
-                          </span>
-                        )}
-                      </td>
-
-                      {/* EUR Price */}
-                      <td className="p-3 text-right font-mono text-emerald-400 font-bold whitespace-nowrap">
-                        €{eurPrice.toFixed(2)}
-                      </td>
-
-                      {/* SAR Price */}
-                      <td className="p-3 text-right font-mono text-white font-bold whitespace-nowrap">
-                        SAR {sarPrice.toFixed(2)}
-                      </td>
-
-                      {/* Profit % & Selling Price */}
-                      <td className="p-3 text-right font-mono whitespace-nowrap">
-                        <div className="text-blue-300 font-bold">{profitPct}%</div>
-                        <div className="text-[10px] text-slate-400">
-                          Sell: SAR {sellingPrice.toFixed(2)}
-                        </div>
-                      </td>
-
-                      {/* Source BOQ / Project */}
-                      <td className="p-3 max-w-xs">
-                        {p.sourceBoqNumber ? (
-                          <div className="space-y-0.5">
-                            <div className="flex items-center space-x-1">
-                              <FileSpreadsheet className="w-3 h-3 text-blue-400 flex-shrink-0" />
-                              <span className="font-mono text-blue-300 font-semibold text-[11px]">
-                                {p.sourceBoqNumber}
-                              </span>
-                            </div>
-                            {p.sourceProjectName && (
-                              <div className="text-[11px] text-slate-300 font-medium truncate">
-                                {p.sourceProjectName}
-                              </div>
-                            )}
-                            {p.sourceDate && (
-                              <div className="text-[10px] text-slate-500 flex items-center space-x-1">
-                                <Calendar className="w-2.5 h-2.5" />
-                                <span>{p.sourceDate}</span>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="inline-block px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/40 text-purple-300 text-[10px] font-semibold">
-                            Manual Master
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="p-3 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center space-x-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleCopyDetails(p)}
-                            title="Copy specs and prices"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                          >
-                            {copiedId === p.id ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteItem(p.id, p.description)}
-                            title="Remove from Catalog"
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                paginatedProducts.map(p => (
+                  <ProductRow
+                    key={p.id}
+                    product={p}
+                    isCopied={copiedId === p.id}
+                    onCopy={handleCopyDetails}
+                    onDelete={handleDeleteItem}
+                  />
+                ))
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Footer info showing filtered count */}
-        <div className="p-2.5 bg-slate-950 border-t border-slate-800 text-[11px] text-slate-500 flex items-center justify-between px-4">
-          <span>
-            Showing <strong className="text-slate-300">{filteredProducts.length}</strong> of{' '}
-            <strong className="text-slate-300">{products.length}</strong> items in Catalog
-          </span>
-          {searchTerm && (
-            <span className="text-blue-400">
-              Filtered by: "{searchTerm}"
+        {/* Footer info showing filtered count & pagination controls */}
+        <div className="p-3 bg-slate-950 border-t border-slate-800 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-3 px-4">
+          <div className="flex items-center space-x-2">
+            <span>
+              Showing <strong className="text-white">{filteredProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong> to{' '}
+              <strong className="text-white">{Math.min(currentPage * pageSize, filteredProducts.length)}</strong> of{' '}
+              <strong className="text-white">{filteredProducts.length}</strong> items
+              {searchTerm && <span className="text-blue-400 ml-1">(filtered)</span>}
             </span>
-          )}
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-1.5 text-xs text-slate-400">
+              <span>Per page:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-xs text-white focus:outline-none"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center space-x-1">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-slate-900 text-slate-300 transition-colors"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="px-2 text-xs font-medium text-slate-300">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-slate-900 text-slate-300 transition-colors"
+                  title="Next Page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
